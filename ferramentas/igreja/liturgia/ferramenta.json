@@ -1,0 +1,12 @@
+{
+  "nome": "Escala de Liturgia",
+  "descricao": "Escala mensal (Word) e planilha de planejamento. Importe a aba do mês direto para a tabela.",
+  "icone": "📅",
+  "tipo": "documentos",
+  "ordem": 1,
+  "importar_planilha": true,
+  "nome_padrao": "Escala Liturgia Mês {Proximo_mes}",
+  "campos": [
+    { "rotulo": "Mês da escala", "buscar": "Novembro", "padrao": "{Proximo_mes}", "dica": "Troca o mês no título e nos avisos" }
+  ]
+}

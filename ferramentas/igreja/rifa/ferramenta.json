@@ -1,0 +1,7 @@
+{
+  "nome": "Gerador de Rifas",
+  "descricao": "Gera as folhas de rifa em Word com tabelas numeradas (Nº / Nome / Contato).",
+  "icone": "🎟️",
+  "tipo": "app",
+  "ordem": 4
+}

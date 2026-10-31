@@ -1,0 +1,17 @@
+# Material de referência usado para basear o projeto
+/old/
+
+# Dados gerados / pessoais das ferramentas (recriados automaticamente)
+/ferramentas/**/backups/
+/ferramentas/**/lixeira/
+/ferramentas/**/saidas/
+/ferramentas/**/dados/
+/ferramentas/**/documentos/
+
+# Sistema / editores
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/
+.idea/
+~$*

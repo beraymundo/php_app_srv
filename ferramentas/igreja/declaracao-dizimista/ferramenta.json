@@ -1,0 +1,17 @@
+{
+  "nome": "Declaração de Dizimista",
+  "descricao": "Preencha os dados e gere a declaração com o mesmo layout (cabeçalho, rodapé e assinaturas).",
+  "icone": "📜",
+  "tipo": "documentos",
+  "ordem": 2,
+  "nome_padrao": "Declaração dizimista - ",
+  "campos": [
+    { "rotulo": "Tratamento", "buscar": "a Sra.", "dica": "Ex.: a Sra.  /  o Sr." },
+    { "rotulo": "Nome do dizimista", "buscar": "Fulana de Tal" },
+    { "rotulo": "Endereço / bairro", "buscar": "Bairro Columbia – Colatina/ES", "antes": "residente em " },
+    { "rotulo": "Comunidade", "buscar": "Comunidade Sagrada Familia", "dica": "Também troca na linha de assinatura do representante" },
+    { "rotulo": "Inscrição (mês e ano)", "buscar": "setembro de 2026", "antes": "dizimista em " },
+    { "rotulo": "Contribui até o ano", "buscar": "2026", "antes": "até o ano de ", "padrao": "{ano}" },
+    { "rotulo": "Data da declaração", "buscar": "26 de setembro de 2026", "antes": "Colatina (ES), ", "padrao": "{hoje_extenso}" }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "nome": "Editor de Word / Excel",
+  "descricao": "Envie qualquer .docx ou .xlsx e edite textos, linhas e tabelas sem estragar a formatação.",
+  "icone": "📝",
+  "tipo": "documentos",
+  "ordem": 1,
+  "importar_planilha": true
+}
