@@ -81,7 +81,7 @@ function painel_inicio(): void
     }
 
     // ---- Aniversariantes
-    if (($e = painel_estado('igreja', 'aniversariantes')) && !empty($e['pessoas'])) {
+    if (($e = painel_estado('genericos', 'aniversarios')) && !empty($e['pessoas'])) {
         $hoje = new DateTimeImmutable('today');
         $prox = [];
         foreach ($e['pessoas'] as $p) {
@@ -100,7 +100,7 @@ function painel_inicio(): void
         sort($prox);
         if ($prox) {
             $html = '<ul class="painel-lista">' . implode('', array_map(fn($x) => '<li><span>' . h($x[1]) . '</span><span class="num ' . ($x[0] === 0 ? 'estado-ok' : 'mudo') . '">' . ($x[0] === 0 ? 'hoje' : $x[2]->format('d/m')) . '</span></li>', array_slice($prox, 0, 5))) . '</ul>';
-            $blocos[] = ['Aniversariantes da semana', $e['_url'], $html];
+            $blocos[] = ['Aniversários da semana', $e['_url'], $html];
         }
     }
 
