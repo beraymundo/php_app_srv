@@ -55,6 +55,7 @@ function rodape(array $scripts = []): void
 </main>
 <footer class="rodape nao-imprimir">
   <span><kbd>/</kbd> buscar</span><span><kbd>Esc</kbd> voltar</span><span><kbd>?</kbd> atalhos</span>
+  <a href="index.php?a=backup">backup</a>
 </footer>
 <script id="dados-nav" type="application/json"><?= json_encode(dados_navegacao(), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_INVALID_UTF8_SUBSTITUTE) ?></script>
 <?php foreach ($scripts as $s): ?>

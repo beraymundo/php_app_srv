@@ -13,6 +13,12 @@ return [
         'min_versoes' => 5,    // ...mas as N mais recentes são sempre mantidas
     ],
 
+    // Backup geral (zip com os dados de todas as ferramentas) gravado em backups_gerais/
+    'backup_geral' => [
+        'dias' => 30,      // faz um automático a cada N dias (0 desliga)
+        'manter' => 12,    // quantos zips guardar
+    ],
+
     // Arquivos excluídos vão para <ferramenta>/lixeira/ e somem depois de N dias
     'lixeira_dias' => 60,
 

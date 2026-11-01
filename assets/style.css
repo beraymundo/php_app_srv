@@ -353,6 +353,7 @@ table.planilha td.ro input { color: var(--mudo); font-style: italic; }
 .linha-form > .btn { flex: 0 0 auto; }
 table.dados { width: 100%; border-collapse: collapse; }
 table.dados th { text-align: left; font-weight: 500; font-size: .78rem; color: var(--mudo); padding: 6px 8px; border-bottom: 1px solid var(--borda-forte); }
+table.dados th.num { text-align: right; }
 table.dados td { padding: 6px 8px; border-bottom: 1px solid var(--borda); vertical-align: middle; }
 table.dados tr:last-child td { border-bottom: 0; }
 table.dados tfoot td { border-top: 1px solid var(--borda-forte); font-weight: 600; }
@@ -360,6 +361,26 @@ table.dados input, table.dados select { padding: 4px 7px; }
 .tabela-rolagem { overflow-x: auto; }
 .riscado { text-decoration: line-through; color: var(--mudo); }
 .cor-lit { display: inline-block; width: .8em; height: .8em; border-radius: 2px; vertical-align: -.05em; margin-right: 6px; border: 1px solid rgba(128,128,128,.4); }
+
+/* ======================================================== painel da página inicial */
+.painel { margin: 0 0 22px; }
+.painel-topo { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.painel-topo h2 { margin: 0; text-transform: lowercase; }
+.painel-lit { color: var(--texto); text-decoration: none; font-size: .85rem; }
+.painel-lit:hover { color: var(--primario); }
+.painel-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(250px, 100%), 1fr)); gap: 12px; }
+.painel-bloco { display: block; background: var(--cartao); border: 1px solid var(--borda); border-left: 2px solid var(--primario); border-radius: var(--raio); padding: 12px 14px; color: var(--texto); text-decoration: none; font-size: .85rem; transition: border-color .12s; }
+.painel-bloco:hover { border-color: var(--primario); }
+.painel-bloco p { margin: 4px 0 0; }
+.painel-titulo { display: block; font-size: .75rem; color: var(--mudo); margin-bottom: 6px; }
+.painel-num { display: flex; gap: 14px; flex-wrap: wrap; }
+.painel-num small { display: block; font-size: .7rem; color: var(--mudo); }
+.painel-num span { font-variant-numeric: tabular-nums; }
+.painel-lista { list-style: none; margin: 6px 0 0; padding: 0; }
+.painel-lista li { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; border-top: 1px dashed var(--borda); }
+.painel-lista li:first-child { border-top: 0; }
+.rodape a { color: var(--mudo); margin-left: auto; }
+.rodape a:hover { color: var(--primario); }
 
 /* ======================================================== navegação: carga, busca, paleta, rodapé */
 .topo { position: sticky; }

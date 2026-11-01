@@ -12,6 +12,8 @@
 require __DIR__ . '/lib/nucleo.php';
 require __DIR__ . '/lib/layout.php';
 require __DIR__ . '/lib/documentos.php';
+require __DIR__ . '/lib/backup.php';
+require __DIR__ . '/lib/painel.php';
 
 session_start();
 
@@ -39,7 +41,10 @@ $t = (string)($_GET['t'] ?? '');
 $a = (string)($_GET['a'] ?? '');
 
 try {
-    if ($c === '') {
+    Backup::automatico();
+    if ($c === '' && str_starts_with($a, 'backup')) {
+        pagina_backup($a);
+    } elseif ($c === '') {
         pagina_inicio();
     } elseif ($t === '') {
         pagina_categoria($c);
@@ -94,6 +99,7 @@ function pagina_inicio(): void
 <div class="titulo-pagina">
   <div><h1>O que vamos fazer hoje?</h1><p class="mudo">Escolha um conjunto de ferramentas.</p></div>
 </div>
+<?php painel_inicio(); ?>
 <label class="busca">
   <span class="prompt">&gt;</span>
   <input id="busca-inicio" type="search" placeholder="buscar ferramenta... (atalho: /)" autocomplete="off" spellcheck="false">
@@ -118,6 +124,75 @@ function pagina_inicio(): void
   <label class="largo">Descrição <input name="descricao"></label>
   <div class="largo"><button class="btn btn-primario">Criar</button></div>
 </form>
+<?php
+    rodape();
+}
+
+function pagina_backup(string $a): void
+{
+    if ($a === 'backup_baixar') {
+        $tmp = tempnam(sys_get_temp_dir(), 'bkp');
+        file_put_contents($tmp, Backup::gerar());
+        register_shutdown_function(fn() => @unlink($tmp));
+        enviar_arquivo($tmp, 'backup_central_' . date('Y-m-d') . '.zip');
+    }
+    if ($a === 'backup_arquivo') {
+        $nome = basename((string)($_GET['n'] ?? ''));
+        if (!preg_match('/^backup_[\w-]+\.zip$/', $nome) || !is_file(Backup::dir() . "/$nome")) {
+            throw new RuntimeException('Backup não encontrado.');
+        }
+        enviar_arquivo(Backup::dir() . "/$nome");
+    }
+    if ($a === 'backup_agora' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        flash('Backup gravado: ' . Backup::gravar('manual'));
+        redirecionar('index.php?a=backup');
+    }
+    if ($a === 'backup_restaurar' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        $arq = $_FILES['zip'] ?? null;
+        if (!$arq || $arq['error'] !== UPLOAD_ERR_OK) {
+            throw new RuntimeException('Envie o arquivo .zip do backup.');
+        }
+        $n = Backup::restaurar((string)file_get_contents($arq['tmp_name']));
+        flash("Backup restaurado: $n arquivos. O estado anterior foi guardado em um backup \"antes-de-restaurar\".");
+        redirecionar('index.php?a=backup');
+    }
+    $lista = Backup::lista();
+    $cfg = config('backup_geral');
+    cabecalho('Backup', [['Backup', null]]);
+    ?>
+<div class="titulo-pagina"><div><h1>Backup</h1><p class="mudo">Uma cópia de todos os dados: modelos, documentos, arquivos gerados e o que cada ferramenta guarda.</p></div></div>
+<div class="barra-voltar"><a class="btn" href="index.php">← Início</a></div>
+<div class="colunas">
+  <section class="cartao">
+    <h2>Fazer backup</h2>
+    <p class="mudo pequeno">Baixe e guarde em outro lugar (pen drive, Google Drive). O histórico de versões e a lixeira ficam de fora.</p>
+    <div class="grupo">
+      <a class="btn btn-primario" href="index.php?a=backup_baixar">Baixar backup agora</a>
+      <form method="post" action="index.php?a=backup_agora" class="inline"><button class="btn">Gravar uma cópia aqui no servidor</button></form>
+    </div>
+    <h2 style="margin-top:20px">Restaurar</h2>
+    <p class="mudo pequeno">Envie um .zip de backup. Os arquivos dele substituem os atuais com o mesmo nome. Antes, o estado atual é guardado automaticamente.</p>
+    <form method="post" enctype="multipart/form-data" action="index.php?a=backup_restaurar" class="grupo" data-confirmar="Restaurar este backup por cima dos dados atuais?">
+      <input type="file" name="zip" accept=".zip" required style="max-width:320px">
+      <button class="btn btn-perigo">Restaurar</button>
+    </form>
+  </section>
+  <section class="cartao">
+    <h2>Cópias no servidor</h2>
+    <p class="mudo pequeno"><?= $cfg['dias'] > 0 ? 'Uma cópia automática é feita a cada ' . (int)$cfg['dias'] . ' dias.' : 'O backup automático está desligado.' ?> Ficam as <?= (int)$cfg['manter'] ?> mais recentes (ajuste em config.php).</p>
+    <?php if (!$lista): ?><p class="mudo">Nenhuma ainda.</p><?php else: ?>
+    <table class="lista">
+      <?php foreach ($lista as $b): ?>
+      <tr>
+        <td><span class="tag">zip</span><?= h(data_legivel($b['mtime'])) ?> <span class="mudo pequeno"><?= h(str_contains($b['nome'], '_auto') ? 'automático' : (str_contains($b['nome'], 'antes-de-restaurar') ? 'antes de restaurar' : 'manual')) ?></span></td>
+        <td class="mudo nao-celular"><?= tamanho_legivel($b['tamanho']) ?></td>
+        <td class="acoes"><a class="btn btn-p" href="index.php?a=backup_arquivo&amp;n=<?= h(rawurlencode($b['nome'])) ?>">Baixar</a></td>
+      </tr>
+      <?php endforeach; ?>
+    </table>
+    <?php endif; ?>
+  </section>
+</div>
 <?php
     rodape();
 }
