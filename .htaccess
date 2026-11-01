@@ -2,3 +2,6 @@ Options -Indexes
 <Files "config.php">
   Require all denied
 </Files>
+
+# Dados das pessoas e backups nunca são servidos diretamente (só pelo index.php)
+RedirectMatch 403 (?i)/(usuarios|backups_gerais|old)(/|$)
