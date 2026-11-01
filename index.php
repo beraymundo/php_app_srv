@@ -24,7 +24,7 @@ if (config('senha') !== '' && empty($_SESSION['logado'])) {
     cabecalho('Entrar');
     ?>
     <form method="post" class="cartao login">
-      <h1>🔒 Entrar</h1>
+      <h1>Entrar</h1>
       <?php if (isset($_POST['senha'])): ?><div class="aviso aviso-erro">Senha incorreta.</div><?php endif; ?>
       <input type="password" name="senha" placeholder="Senha" autofocus>
       <button class="btn btn-primario">Entrar</button>
@@ -68,7 +68,7 @@ try {
         cabecalho('Erro');
     }
     echo '<div class="aviso aviso-erro"><strong>Ops:</strong> ' . h($e->getMessage()) . '</div>';
-    echo '<p><a class="btn" href="javascript:history.back()">← Voltar</a> <a class="btn btn-leve" href="index.php">⌂ Início</a></p>';
+    echo '<p><a class="btn" href="javascript:history.back()">← Voltar</a> <a class="btn btn-leve" href="index.php">Início</a></p>';
     if (!($e instanceof RuntimeException)) {
         echo '<pre class="mudo pequeno">' . h($e->getFile() . ':' . $e->getLine()) . '</pre>';
     }
@@ -85,7 +85,7 @@ function pagina_inicio(): void
         if ($nome === '' || is_dir(DIR_FERRAMENTAS . "/$id")) {
             throw new RuntimeException('Nome vazio ou categoria já existe.');
         }
-        gravar_json(DIR_FERRAMENTAS . "/$id/_categoria.json", ['nome' => $nome, 'icone' => trim((string)$_POST['icone']) ?: '📁', 'descricao' => trim((string)$_POST['descricao']), 'ordem' => 40]);
+        gravar_json(DIR_FERRAMENTAS . "/$id/_categoria.json", ['nome' => $nome, 'descricao' => trim((string)$_POST['descricao']), 'ordem' => 40]);
         flash("Categoria \"$nome\" criada.");
         redirecionar("index.php?c=$id");
     }
@@ -94,23 +94,27 @@ function pagina_inicio(): void
 <div class="titulo-pagina">
   <div><h1>O que vamos fazer hoje?</h1><p class="mudo">Escolha um conjunto de ferramentas.</p></div>
 </div>
-<div class="grade">
+<label class="busca">
+  <span class="prompt">&gt;</span>
+  <input id="busca-inicio" type="search" placeholder="buscar ferramenta... (atalho: /)" autocomplete="off" spellcheck="false">
+</label>
+<ul class="resultados" id="busca-resultados" hidden></ul>
+<div class="grade" id="grade-inicio">
   <?php foreach (categorias() as $cat): ?>
   <a class="bloco" href="index.php?c=<?= h($cat['id']) ?>">
-    <span class="bloco-icone"><?= h($cat['icone']) ?></span>
+    <span class="bloco-caminho">~/<?= h($cat['id']) ?></span>
     <span class="bloco-nome"><?= h($cat['nome']) ?></span>
     <span class="bloco-desc"><?= h($cat['descricao']) ?></span>
     <span class="bloco-qtd"><?= $cat['qtd'] ? $cat['qtd'] . ' ferramenta' . ($cat['qtd'] > 1 ? 's' : '') : 'vazia' ?></span>
   </a>
   <?php endforeach; ?>
   <button class="bloco bloco-novo" data-abrir="#nova-cat">
-    <span class="bloco-icone">＋</span><span class="bloco-nome">Nova categoria</span>
+    <span class="bloco-caminho">mkdir</span><span class="bloco-nome">+ Nova categoria</span>
   </button>
 </div>
 <form id="nova-cat" class="cartao painel-oculto form-grade" method="post" action="index.php?a=nova_categoria">
   <h2 class="largo">Nova categoria</h2>
   <label>Nome <input name="nome" required placeholder="Ex.: Trabalho"></label>
-  <label>Ícone (emoji) <input name="icone" value="📁" maxlength="4"></label>
   <label class="largo">Descrição <input name="descricao"></label>
   <div class="largo"><button class="btn btn-primario">Criar</button></div>
 </form>
@@ -138,7 +142,6 @@ function pagina_categoria(string $c): void
         gravar_json("$dir/ferramenta.json", [
             'nome' => $nome,
             'descricao' => trim((string)$_POST['descricao']),
-            'icone' => trim((string)$_POST['icone']) ?: '📄',
             'tipo' => 'documentos',
             'importar_planilha' => true,
         ]);
@@ -156,7 +159,6 @@ function pagina_categoria(string $c): void
     cabecalho($cat['nome'], [[$cat['nome'], null]]);
     ?>
 <div class="titulo-pagina">
-  <span class="icone-grande"><?= h($cat['icone']) ?></span>
   <div><h1><?= h($cat['nome']) ?></h1><p class="mudo"><?= h($cat['descricao']) ?></p></div>
 </div>
 <div class="barra-voltar">
@@ -164,7 +166,7 @@ function pagina_categoria(string $c): void
   <?php if (count($cats) > 1): ?>
   <span class="mudo pequeno">Ir para:</span>
   <?php foreach ($cats as $o): if ($o['id'] === $c) continue; ?>
-    <a class="btn btn-leve btn-p" href="index.php?c=<?= h($o['id']) ?>"><?= h($o['icone'] . ' ' . $o['nome']) ?></a>
+    <a class="btn btn-leve btn-p" href="index.php?c=<?= h($o['id']) ?>"><?= h($o['nome']) ?></a>
   <?php endforeach; endif; ?>
 </div>
 <?php if (!$lista): ?>
@@ -176,20 +178,19 @@ function pagina_categoria(string $c): void
 <div class="grade">
   <?php foreach ($lista as $f): ?>
   <a class="bloco" href="<?= h($f->url()) ?>">
-    <span class="bloco-icone"><?= h($f->icone) ?></span>
+    <span class="bloco-caminho">./<?= h($f->id) ?></span>
     <span class="bloco-nome"><?= h($f->nome) ?></span>
     <span class="bloco-desc"><?= h($f->descricao) ?></span>
   </a>
   <?php endforeach; ?>
   <button class="bloco bloco-novo" data-abrir="#nova-ferr">
-    <span class="bloco-icone">＋</span><span class="bloco-nome">Nova ferramenta de documento</span>
+    <span class="bloco-caminho">novo</span><span class="bloco-nome">+ Nova ferramenta de documento</span>
     <span class="bloco-desc">A partir de um .docx ou .xlsx modelo</span>
   </button>
 </div>
 <form id="nova-ferr" class="cartao painel-oculto form-grade" method="post" enctype="multipart/form-data" action="index.php?c=<?= h($c) ?>&a=nova_ferramenta">
   <h2 class="largo">Nova ferramenta de documento</h2>
   <label>Nome <input name="nome" required placeholder="Ex.: Recibo de aluguel"></label>
-  <label>Ícone (emoji) <input name="icone" value="📄" maxlength="4"></label>
   <label class="largo">Descrição <input name="descricao"></label>
   <label class="largo">Arquivo modelo (.docx ou .xlsx) <input type="file" name="modelo" accept=".docx,.xlsx"></label>
   <div class="largo"><button class="btn btn-primario">Criar ferramenta</button></div>
@@ -224,7 +225,7 @@ function acoes_comuns(Ferramenta $f, string $a): bool
             }
             cabecalho_ferramenta($f, basename($rel));
             barra_voltar($f, $f->url(), $f->nome);
-            echo '<p><a class="btn btn-primario" href="' . h($f->url(['a' => 'zip', 'f' => $rel])) . '">⬇ Baixar tudo em .zip</a></p>';
+            echo '<p><a class="btn btn-primario" href="' . h($f->url(['a' => 'zip', 'f' => $rel])) . '">Baixar tudo em .zip</a></p>';
             lista_saidas($f, $rel, basename($rel));
             rodape();
             return true;
@@ -262,7 +263,7 @@ function pagina_lixeira(Ferramenta $f): void
     ?>
 <section class="cartao">
   <div class="cartao-topo">
-    <h2>🗑 Lixeira</h2>
+    <h2>Lixeira</h2>
     <?php if ($itens): ?>
     <form method="post" action="<?= h($f->url(['a' => 'esvaziar_lixeira'])) ?>" data-confirmar="Apagar DEFINITIVAMENTE tudo da lixeira?"><button class="btn btn-perigo">Esvaziar</button></form>
     <?php endif; ?>
@@ -272,10 +273,10 @@ function pagina_lixeira(Ferramenta $f): void
   <table class="lista">
     <?php foreach ($itens as $i): ?>
     <tr>
-      <td><?= $i['dir'] ? '📂' : icone_arquivo(strtolower(pathinfo($i['original'], PATHINFO_EXTENSION))) ?> <?= h($i['original']) ?></td>
+      <td><?= $i['dir'] ? icone_arquivo('dir') : icone_arquivo(strtolower(pathinfo($i['original'], PATHINFO_EXTENSION))) ?> <?= h($i['original']) ?></td>
       <td class="mudo">excluído <?= data_legivel($i['mtime']) ?></td>
       <td class="acoes">
-        <form method="post" class="inline" action="<?= h($f->url(['a' => 'restaurar_lixeira'])) ?>"><input type="hidden" name="n" value="<?= h($i['nome']) ?>"><button class="btn btn-p">↺ Restaurar</button></form>
+        <form method="post" class="inline" action="<?= h($f->url(['a' => 'restaurar_lixeira'])) ?>"><input type="hidden" name="n" value="<?= h($i['nome']) ?>"><button class="btn btn-p">Restaurar</button></form>
       </td>
     </tr>
     <?php endforeach; ?>

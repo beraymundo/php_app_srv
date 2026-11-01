@@ -105,7 +105,6 @@ $textoVer = $verArq && is_file($f->caminho("saidas/$verArq")) ? file_get_content
 cabecalho_ferramenta($f);
 ?>
 <div class="titulo-pagina">
-  <span class="icone-grande"><?= h($f->icone) ?></span>
   <div><h1><?= h($f->nome) ?></h1><p class="mudo"><?= h($f->descricao) ?></p></div>
 </div>
 <?php barra_voltar($f); ?>
@@ -116,15 +115,15 @@ cabecalho_ferramenta($f);
     <form method="post" action="<?= h($f->url(['a' => 'salvar_duplas'])) ?>" id="form-duplas">
       <ul class="lista-ordenavel" id="duplas">
         <?php foreach ($duplas as $i => $d): ?>
-        <li draggable="true"><span class="alca" title="Arraste para mudar a ordem">⠿</span><span class="num"><?= $i + 1 ?>.</span><input name="duplas[]" value="<?= h($d) ?>"><button type="button" class="btn btn-p btn-perigo" data-remover title="Remover">✕</button></li>
+        <li draggable="true"><span class="alca" title="Arraste para mudar a ordem">::</span><span class="num"><?= $i + 1 ?>.</span><input name="duplas[]" value="<?= h($d) ?>"><button type="button" class="btn btn-p btn-perigo" data-remover title="Remover">✕</button></li>
         <?php endforeach; ?>
       </ul>
       <div class="grupo">
-        <button type="button" class="btn" id="add-dupla">＋ Adicionar casal</button>
-        <button class="btn btn-primario">💾 Salvar lista</button>
-        <?php if (is_file($arqDuplas)): ?><a class="btn btn-leve" href="<?= h($f->url(['a' => 'versoes', 'f' => 'dados/duplas.txt'])) ?>">🕘 Listas anteriores</a><?php endif; ?>
+        <button type="button" class="btn" id="add-dupla">+ Adicionar casal</button>
+        <button class="btn btn-primario">Salvar lista</button>
+        <?php if (is_file($arqDuplas)): ?><a class="btn btn-leve" href="<?= h($f->url(['a' => 'versoes', 'f' => 'dados/duplas.txt'])) ?>">Listas anteriores</a><?php endif; ?>
       </div>
-      <p class="mudo pequeno">Arraste pela alça ⠿ para trocar a ordem. Ao salvar, a lista anterior fica guardada no histórico.</p>
+      <p class="mudo pequeno">Arraste pela alça :: para trocar a ordem. Ao salvar, a lista anterior fica guardada no histórico.</p>
     </form>
   </section>
 
@@ -142,7 +141,7 @@ cabecalho_ferramenta($f);
       </label>
       <label class="largo">Título no Word (opcional) <input name="titulo" placeholder="deixe vazio para não ter título"></label>
       <label class="check largo"><input type="checkbox" name="docx" value="1" checked> Gerar também em Word (.docx)</label>
-      <div class="largo"><button class="btn btn-primario">⚙ Gerar escala</button></div>
+      <div class="largo"><button class="btn btn-primario">Gerar escala</button></div>
     </form>
   </section>
 </div>
@@ -150,12 +149,12 @@ cabecalho_ferramenta($f);
 <?php if ($textoVer !== null): ?>
 <section class="cartao">
   <div class="cartao-topo">
-    <h2>📄 <?= h($verArq) ?></h2>
+    <h2><?= h($verArq) ?></h2>
     <div class="grupo">
-      <button class="btn" onclick="App.copiar(document.getElementById('txt-escala').textContent, this)">📋 Copiar texto (WhatsApp)</button>
+      <button class="btn" onclick="App.copiar(document.getElementById('txt-escala').textContent, this)">Copiar texto (WhatsApp)</button>
       <?php $docx = preg_replace('/\.txt$/', '.docx', $verArq); if (is_file($f->caminho("saidas/$docx"))): ?>
-        <a class="btn" href="<?= h($f->url(['a' => 'editar', 'f' => "saidas/$docx"])) ?>">✎ Abrir Word no editor</a>
-        <a class="btn" href="<?= h($f->url(['a' => 'baixar', 'f' => "saidas/$docx"])) ?>">⬇ .docx</a>
+        <a class="btn" href="<?= h($f->url(['a' => 'editar', 'f' => "saidas/$docx"])) ?>">Abrir Word no editor</a>
+        <a class="btn" href="<?= h($f->url(['a' => 'baixar', 'f' => "saidas/$docx"])) ?>">Baixar .docx</a>
       <?php endif; ?>
     </div>
   </div>
@@ -165,7 +164,7 @@ cabecalho_ferramenta($f);
 
 <?php lista_saidas($f); ?>
 
-<template id="tpl-dupla"><li draggable="true"><span class="alca">⠿</span><span class="num"></span><input name="duplas[]" placeholder="Nome do casal"><button type="button" class="btn btn-p btn-perigo" data-remover>✕</button></li></template>
+<template id="tpl-dupla"><li draggable="true"><span class="alca">::</span><span class="num"></span><input name="duplas[]" placeholder="Nome do casal"><button type="button" class="btn btn-p btn-perigo" data-remover>✕</button></li></template>
 <script>
 (function () {
   const ul = document.getElementById('duplas');

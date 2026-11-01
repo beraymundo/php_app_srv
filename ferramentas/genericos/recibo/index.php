@@ -51,7 +51,7 @@ inicio_ferramenta($f);
     <label>Cidade <input name="cidade" value="<?= h($u['cidade']) ?>"></label>
     <label>Data <input name="data" value="<?= h(data_extenso()) ?>"></label>
     <label>Vias por folha <select name="vias"><option value="1">1</option><option value="2" <?= (int)$u['vias'] === 2 ? 'selected' : '' ?>>2 (com linha de corte)</option></select></label>
-    <div class="largo"><button class="btn btn-primario">🧾 Gerar recibo</button></div>
+    <div class="largo"><button class="btn btn-primario">Gerar recibo</button></div>
   </form>
 </section>
 <?php lista_saidas($f, 'saidas', 'Recibos gerados'); ?>

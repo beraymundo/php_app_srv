@@ -39,7 +39,7 @@ inicio_ferramenta($f);
 ?>
 <div class="colunas colunas-lateral">
   <section class="cartao">
-    <form method="post" action="<?= h($f->url(['a' => 'nova'])) ?>"><button class="btn btn-primario" style="width:100%;justify-content:center">＋ Nova nota</button></form>
+    <form method="post" action="<?= h($f->url(['a' => 'nova'])) ?>"><button class="btn btn-primario" style="width:100%;justify-content:center">+ Nova nota</button></form>
     <ul class="lista-ordenavel" style="margin-top:12px">
       <?php foreach ($notas as $n): ?>
       <li style="<?= $n['nome'] === $atual ? 'border-color:var(--primario)' : '' ?>"><a href="<?= h($f->url(['n' => $n['nome']])) ?>" style="flex:1;text-decoration:none"><?= h(substr($n['nome'], 0, -4)) ?><br><small class="mudo"><?= data_legivel($n['mtime']) ?></small></a></li>
@@ -54,10 +54,10 @@ inicio_ferramenta($f);
       <input id="nome" value="<?= h(substr($atual, 0, -4)) ?>" style="font-weight:600;font-size:1.05rem;max-width:420px">
       <div class="grupo">
         <span class="status" id="st"></span>
-        <button class="btn btn-primario" id="salvar">💾 Salvar</button>
-        <button class="btn" onclick="App.copiar(document.getElementById('txt').value, this)">📋</button>
-        <a class="btn btn-leve" href="<?= h($f->url(['a' => 'versoes', 'f' => "dados/$atual"])) ?>">🕘</a>
-        <form method="post" class="inline" action="<?= h($f->url(['a' => 'excluir'])) ?>" data-confirmar="Mover a nota para a lixeira?"><input type="hidden" name="f" value="<?= h("dados/$atual") ?>"><button class="btn btn-perigo">🗑</button></form>
+        <button class="btn btn-primario" id="salvar">Salvar</button>
+        <button class="btn" onclick="App.copiar(document.getElementById('txt').value, this)">Copiar</button>
+        <a class="btn btn-leve" href="<?= h($f->url(['a' => 'versoes', 'f' => "dados/$atual"])) ?>">Versões</a>
+        <form method="post" class="inline" action="<?= h($f->url(['a' => 'excluir'])) ?>" data-confirmar="Mover a nota para a lixeira?"><input type="hidden" name="f" value="<?= h("dados/$atual") ?>"><button class="btn btn-perigo">Excluir</button></form>
       </div>
     </div>
     <textarea id="txt" style="min-height:60vh;font-family:ui-monospace,Consolas,monospace"><?= h($texto) ?></textarea>
@@ -76,12 +76,12 @@ inicio_ferramenta($f);
     st.textContent = 'Salvando…';
     const r = await fetch(<?= json_encode($f->url(['a' => 'salvar_nota'])) ?>, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ nome: document.getElementById('nome').value, antigo, texto: document.getElementById('txt').value }) });
     const j = await r.json();
-    if (j.erro) { st.textContent = '✖ ' + j.erro; return; }
+    if (j.erro) { st.textContent = 'erro: ' + j.erro; return; }
     sujo = false;
-    st.textContent = '✔ Salvo ' + j.hora;
+    st.textContent = 'salvo ' + j.hora;
     if (j.nome !== antigo) { antigo = j.nome; history.replaceState(null, '', '?' + new URLSearchParams({ ...Object.fromEntries(new URLSearchParams(location.search)), n: j.nome })); }
   };
-  const mudou = () => { sujo = true; st.textContent = '● não salvo'; clearTimeout(timer); timer = setTimeout(salvar, 4000); };
+  const mudou = () => { sujo = true; st.textContent = '* não salvo'; clearTimeout(timer); timer = setTimeout(salvar, 4000); };
   document.getElementById('txt').addEventListener('input', mudou);
   document.getElementById('nome').addEventListener('change', salvar);
   document.getElementById('salvar').onclick = salvar;

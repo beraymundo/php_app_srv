@@ -30,8 +30,8 @@ inicio_ferramenta($f);
   <div class="cartao-topo">
     <h2>Resultado <small class="mudo" id="qtd"></small></h2>
     <div class="grupo">
-      <button class="btn btn-primario" id="copiar">📋 Copiar</button>
-      <button class="btn" id="baixar">⬇ Baixar .txt</button>
+      <button class="btn btn-primario" id="copiar">Copiar</button>
+      <button class="btn" id="baixar">Baixar .txt</button>
     </div>
   </div>
   <div class="saida-texto" id="saida"></div>

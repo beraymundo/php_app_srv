@@ -1,7 +1,6 @@
 {
   "nome": "Declaração de Dizimista",
   "descricao": "Preencha os dados e gere a declaração com o mesmo layout (cabeçalho, rodapé e assinaturas).",
-  "icone": "📜",
   "tipo": "documentos",
   "ordem": 2,
   "nome_padrao": "Declaração dizimista - ",

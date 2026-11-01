@@ -25,9 +25,9 @@ inicio_ferramenta($f);
     <button class="btn" data-f="telefones">Extrair telefones</button>
   </div>
   <div class="grupo" style="margin-top:12px">
-    <button class="btn btn-primario" id="copiar">📋 Copiar</button>
-    <button class="btn" id="desfazer">↶ Desfazer</button>
-    <button class="btn" id="baixar">⬇ Baixar .txt</button>
+    <button class="btn btn-primario" id="copiar">Copiar</button>
+    <button class="btn" id="desfazer">Desfazer</button>
+    <button class="btn" id="baixar">Baixar .txt</button>
     <button class="btn btn-leve" id="limpar">Limpar</button>
   </div>
 </section>

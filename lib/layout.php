@@ -1,7 +1,7 @@
 <?php
 /**
  * Layout das páginas e componentes reutilizáveis.
- * $trilha: lista de [rótulo, url|null] para a navegação (Início › Categoria › Ferramenta).
+ * $trilha: lista de [rótulo, url|null] para a navegação (~ / Categoria / Ferramenta).
  */
 
 function cabecalho(string $titulo, array $trilha = [], array $op = []): void
@@ -15,23 +15,33 @@ function cabecalho(string $titulo, array $trilha = [], array $op = []): void
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= h($titulo === $app ? $app : "$titulo · $app") ?></title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧰</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='4' fill='%230b0b0c'/><path d='M8 10l6 6-6 6' fill='none' stroke='%233b82f6' stroke-width='3'/><path d='M16 23h8' stroke='%23f5f5f5' stroke-width='3'/></svg>">
+<script>try{var t=localStorage.getItem('tema');if(['light','paper','dark','black'].indexOf(t)>=0)document.documentElement.dataset.theme=t;}catch(e){}</script>
 <link rel="stylesheet" href="assets/style.css?v=<?= filemtime(RAIZ . '/assets/style.css') ?>">
+<script src="assets/app.js?v=<?= filemtime(RAIZ . '/assets/app.js') ?>"></script>
 </head>
 <body>
 <header class="topo">
   <div class="topo-in<?= $largo ?>">
-    <a class="marca" href="index.php">🧰 <?= h($app) ?></a>
-    <?php if ($trilha): ?>
-    <nav class="trilha">
-      <a href="index.php">Início</a>
+    <a class="marca" href="index.php"><span class="prompt">&gt;</span> <?= h($app) ?><span class="cursor" aria-hidden="true"></span></a>
+    <nav class="trilha" aria-label="Navegação">
+      <?php if ($trilha): ?><a href="index.php">~</a><?php else: ?><strong>~</strong><?php endif; ?>
       <?php foreach ($trilha as $i => [$rot, $url]): ?>
-        <span>›</span>
+        <span class="sep">/</span>
         <?php if ($url && $i < count($trilha) - 1): ?><a href="<?= h($url) ?>"><?= h($rot) ?></a><?php else: ?><strong><?= h($rot) ?></strong><?php endif; ?>
       <?php endforeach; ?>
     </nav>
-    <?php endif; ?>
+    <label class="tema">tema
+      <select id="tema" aria-label="Tema">
+        <option value="auto">auto</option>
+        <option value="light">claro</option>
+        <option value="paper">papel</option>
+        <option value="dark">escuro</option>
+        <option value="black">preto</option>
+      </select>
+    </label>
   </div>
+  <div class="carga" id="carga" aria-hidden="true"></div>
 </header>
 <main class="conteudo<?= $largo ?>">
 <?php foreach (flash() as [$tipo, $msg]): ?>
@@ -43,7 +53,10 @@ function rodape(array $scripts = []): void
 {
     ?>
 </main>
-<script src="assets/app.js?v=<?= filemtime(RAIZ . '/assets/app.js') ?>"></script>
+<footer class="rodape nao-imprimir">
+  <span><kbd>/</kbd> buscar</span><span><kbd>Esc</kbd> voltar</span><span><kbd>?</kbd> atalhos</span>
+</footer>
+<script id="dados-nav" type="application/json"><?= json_encode(dados_navegacao(), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_INVALID_UTF8_SUBSTITUTE) ?></script>
 <?php foreach ($scripts as $s): ?>
 <script src="assets/<?= h($s) ?>?v=<?= filemtime(RAIZ . '/assets/' . $s) ?>"></script>
 <?php endforeach; ?>
@@ -52,14 +65,32 @@ function rodape(array $scripts = []): void
 <?php
 }
 
+/** JSON seguro para colocar dentro de <script> na página. */
+function json_js(mixed $v): string
+{
+    return json_encode($v, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE);
+}
+
+/** Lista de todas as ferramentas, para a busca rápida (atalho "/"). */
+function dados_navegacao(): array
+{
+    $out = [];
+    foreach (categorias() as $cat) {
+        foreach (ferramentas($cat['id']) as $f) {
+            $out[] = ['id' => $f->id, 'nome' => $f->nome, 'desc' => $f->descricao, 'cat' => $cat['nome'], 'catId' => $cat['id'], 'url' => $f->url()];
+        }
+    }
+    return $out;
+}
+
 /** Barra com botões de voltar (para a categoria e para o início). */
 function barra_voltar(Ferramenta $f, ?string $voltarPara = null, string $rotulo = 'Voltar'): void
 {
     ?>
 <div class="barra-voltar">
   <?php if ($voltarPara): ?><a class="btn" href="<?= h($voltarPara) ?>">← <?= h($rotulo) ?></a><?php endif; ?>
-  <a class="btn btn-leve" href="index.php?c=<?= h($f->cat) ?>">↑ Ferramentas de <?= h(categorias()[$f->cat]['nome'] ?? $f->cat) ?></a>
-  <a class="btn btn-leve" href="index.php">⌂ Início</a>
+  <a class="btn btn-leve" href="index.php?c=<?= h($f->cat) ?>">Ferramentas de <?= h(categorias()[$f->cat]['nome'] ?? $f->cat) ?></a>
+  <a class="btn btn-leve" href="index.php">Início</a>
 </div>
 <?php
 }
@@ -81,7 +112,6 @@ function inicio_ferramenta(Ferramenta $f): void
     cabecalho_ferramenta($f);
     ?>
 <div class="titulo-pagina">
-  <span class="icone-grande"><?= h($f->icone) ?></span>
   <div><h1><?= h($f->nome) ?></h1><p class="mudo"><?= h($f->descricao) ?></p></div>
 </div>
 <?php
@@ -103,23 +133,23 @@ function lista_saidas(Ferramenta $f, string $sub = 'saidas', string $titulo = 'A
   <table class="lista">
     <?php foreach ($itens as $i): ?>
     <tr>
-      <td><?= $i['dir'] ? '📂' : icone_arquivo($i['ext']) ?>
+      <td><?= icone_arquivo($i['dir'] ? 'dir' : $i['ext']) ?>
         <?php if ($i['dir']): ?><a href="<?= h($f->url(['a' => 'pasta', 'f' => $i['rel']])) ?>"><?= h($i['nome']) ?></a>
         <?php else: ?><?= h($i['nome']) ?><?php endif; ?></td>
       <td class="mudo nao-celular"><?= $i['dir'] ? '' : tamanho_legivel($i['tamanho']) ?></td>
       <td class="mudo nao-celular"><?= data_legivel($i['mtime']) ?></td>
       <td class="acoes">
         <?php if ($i['dir']): ?>
-          <a class="btn btn-p" href="<?= h($f->url(['a' => 'zip', 'f' => $i['rel']])) ?>">⬇ .zip</a>
+          <a class="btn btn-p" href="<?= h($f->url(['a' => 'zip', 'f' => $i['rel']])) ?>">Baixar .zip</a>
         <?php else: ?>
-          <?php if ($i['ext'] === 'docx' || $i['ext'] === 'xlsx'): ?><a class="btn btn-p" href="<?= h($f->url(['a' => 'editar', 'f' => $i['rel']])) ?>">✎ Abrir</a><?php endif; ?>
-          <?php if (in_array($i['ext'], ['txt', 'pdf', 'png', 'jpg', 'csv'], true)): ?><a class="btn btn-p" target="_blank" href="<?= h($f->url(['a' => 'ver', 'f' => $i['rel']])) ?>">👁 Ver</a><?php endif; ?>
-          <a class="btn btn-p" href="<?= h($f->url(['a' => 'baixar', 'f' => $i['rel']])) ?>">⬇</a>
+          <?php if ($i['ext'] === 'docx' || $i['ext'] === 'xlsx'): ?><a class="btn btn-p" href="<?= h($f->url(['a' => 'editar', 'f' => $i['rel']])) ?>">Abrir</a><?php endif; ?>
+          <?php if (in_array($i['ext'], ['txt', 'pdf', 'png', 'jpg', 'csv'], true)): ?><a class="btn btn-p" target="_blank" href="<?= h($f->url(['a' => 'ver', 'f' => $i['rel']])) ?>">Ver</a><?php endif; ?>
+          <a class="btn btn-p" href="<?= h($f->url(['a' => 'baixar', 'f' => $i['rel']])) ?>">Baixar</a>
         <?php endif; ?>
         <form method="post" action="<?= h($f->url(['a' => 'excluir'])) ?>" class="inline" data-confirmar="Mover &quot;<?= h($i['nome']) ?>&quot; para a lixeira?">
           <input type="hidden" name="f" value="<?= h($i['rel']) ?>">
           <input type="hidden" name="voltar" value="<?= h($_SERVER['REQUEST_URI'] ?? '') ?>">
-          <button class="btn btn-p btn-perigo" title="Excluir">🗑</button>
+          <button class="btn btn-p btn-perigo" title="Excluir">Excluir</button>
         </form>
       </td>
     </tr>
@@ -132,11 +162,12 @@ function lista_saidas(Ferramenta $f, string $sub = 'saidas', string $titulo = 'A
 
 function icone_arquivo(string $ext): string
 {
-    return ['docx' => '📝', 'xlsx' => '📊', 'pdf' => '📕', 'txt' => '📄', 'zip' => '🗜', 'png' => '🖼', 'jpg' => '🖼', 'csv' => '📊'][$ext] ?? '📄';
+    $ext = $ext === '' ? 'arq' : $ext;
+    return '<span class="tag tag-' . h($ext) . '">' . h($ext === 'dir' ? 'dir' : $ext) . '</span>';
 }
 
 function link_lixeira(Ferramenta $f): void
 {
     $n = count($f->listar('lixeira'));
-    echo '<a class="btn btn-leve" href="' . h($f->url(['a' => 'lixeira'])) . '">🗑 Lixeira' . ($n ? " ($n)" : '') . '</a>';
+    echo '<a class="btn btn-leve" href="' . h($f->url(['a' => 'lixeira'])) . '">Lixeira' . ($n ? " ($n)" : '') . '</a>';
 }

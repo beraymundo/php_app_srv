@@ -11,7 +11,7 @@
   document.querySelector('[data-acao=desfazer]')?.remove();
 
   const letra = (n) => { let s = ''; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; };
-  const marcarSujo = (v = true) => { sujo = v; status.classList.toggle('sujo', v); if (v) status.textContent = '● Alterações não salvas'; };
+  const marcarSujo = (v = true) => { sujo = v; status.classList.toggle('sujo', v); if (v) status.textContent = '* alterações não salvas'; };
 
   function render() {
     ed.innerHTML = '';
@@ -34,8 +34,8 @@
     ferr.className = 'ferr-planilha';
     ferr.innerHTML = `<label class="check">Linhas usadas <input type="number" min="1" value="${st.linhas}"></label>
       <button class="btn btn-p" data-k="ap">Aplicar</button>
-      <button class="btn btn-p" data-k="mais">＋ Linha</button>
-      <button class="btn btn-p" data-k="menos">− Última linha</button>
+      <button class="btn btn-p" data-k="mais">+ Linha</button>
+      <button class="btn btn-p" data-k="menos">- Última linha</button>
       <span class="mudo pequeno">Linhas novas copiam o estilo da última linha preenchida.</span>`;
     ferr.onclick = (e) => {
       const k = e.target.dataset.k;
@@ -130,7 +130,7 @@
       marcarSujo(false);
       location.href = j.url || location.href;
     } catch (e) {
-      status.textContent = '✖ ' + e.message;
+      status.textContent = 'erro: ' + e.message;
       alert('Erro ao salvar: ' + e.message);
     }
   }

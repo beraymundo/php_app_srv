@@ -8,7 +8,7 @@ $fim = date('Y-m-t', strtotime('first day of next month'));
 ?>
 <div class="colunas">
   <section class="cartao">
-    <h2>📏 Dias entre duas datas</h2>
+    <h2>Dias entre duas datas</h2>
     <div class="form-grade" id="dif">
       <label>De <input type="date" name="a" value="<?= $hoje ?>"></label>
       <label>Até <input type="date" name="b" value="<?= date('Y-12-25') ?>"></label>
@@ -16,7 +16,7 @@ $fim = date('Y-m-t', strtotime('first day of next month'));
     <p class="destaque pequeno" id="dif-res" style="font-size:1.3rem"></p>
   </section>
   <section class="cartao">
-    <h2>➕ Somar / subtrair dias</h2>
+    <h2>Somar / subtrair dias</h2>
     <div class="form-grade" id="soma">
       <label>Data <input type="date" name="d" value="<?= $hoje ?>"></label>
       <label>Dias (use − para voltar) <input type="number" name="n" value="30"></label>
@@ -26,7 +26,7 @@ $fim = date('Y-m-t', strtotime('first day of next month'));
   </section>
 </div>
 <section class="cartao">
-  <h2>📅 Listar dias da semana de um período</h2>
+  <h2>Listar dias da semana de um período</h2>
   <p class="mudo pequeno">Ex.: todos os domingos do mês que vem — útil para montar escalas.</p>
   <div class="form-grade" id="lst">
     <label>De <input type="date" name="a" value="<?= $ini ?>"></label>
@@ -46,7 +46,7 @@ $fim = date('Y-m-t', strtotime('first day of next month'));
       </select>
     </label>
   </div>
-  <div class="cartao-topo" style="margin-top:10px"><span class="mudo" id="lst-qtd"></span><button class="btn" id="lst-copiar">📋 Copiar</button></div>
+  <div class="cartao-topo" style="margin-top:10px"><span class="mudo" id="lst-qtd"></span><button class="btn" id="lst-copiar">Copiar</button></div>
   <div class="saida-texto" id="lst-res"></div>
 </section>
 <script>

@@ -18,7 +18,7 @@
   function marcarSujo(v = true) {
     sujo = v;
     status.classList.toggle('sujo', v);
-    if (v) status.textContent = '● Alterações não salvas';
+    if (v) status.textContent = '* alterações não salvas';
   }
 
   // ------------------------------------------------------------------ formatação -> CSS
@@ -67,7 +67,7 @@
       if (b.t === 'p') cont.appendChild(renderPar(b, lista));
       else if (b.t === 'tbl') cont.appendChild(renderTabela(b, lista));
       else if (!OCULTOS.includes(b.n)) {
-        const r = el('div', 'raw-bloco', '🔒 ' + (b.txt || `[${b.n}]`));
+        const r = el('div', 'raw-bloco', '[bloqueado] ' + (b.txt || `[${b.n}]`));
         r.title = 'Este trecho não é editável aqui, mas será mantido.';
         cont.appendChild(r);
       }
@@ -113,7 +113,7 @@
 
     const ferr = el('div', 'ferr-par');
     ferr.contentEditable = 'false';
-    [['＋', 'Nova linha abaixo', () => inserirPar(b, lista, false)], ['⧉', 'Duplicar esta linha', () => inserirPar(b, lista, true)], ['✕', 'Remover esta linha', () => removerPar(b, lista)]].forEach(([t, title, fn]) => {
+    [['+', 'Nova linha abaixo', () => inserirPar(b, lista, false)], ['2x', 'Duplicar esta linha', () => inserirPar(b, lista, true)], ['×', 'Remover esta linha', () => removerPar(b, lista)]].forEach(([t, title, fn]) => {
       const bt = el('button', null, t);
       bt.title = title;
       bt.type = 'button';
@@ -135,11 +135,11 @@
       <label>Linhas <input type="number" min="1" max="500" value="${nL}" data-k="l"></label>
       <label>Colunas <input type="number" min="1" max="30" value="${nC}" data-k="c" ${b.m ? 'disabled title="Tabela com células mescladas: só dá para mudar linhas"' : ''}></label>
       <button type="button" data-k="aplicar">Aplicar</button>
-      <button type="button" data-k="mais-l">＋ Linha</button>
-      ${b.m ? '' : '<button type="button" data-k="mais-c">＋ Coluna</button>'}
-      <button type="button" data-k="colar" title="Cole células copiadas do Excel/Google Planilhas">📋 Colar do Excel</button>
-      ${D.planilhas && D.planilhas.length ? '<button type="button" data-k="importar">📥 Importar planilha</button>' : ''}
-      <button type="button" data-k="limpar" title="Apaga o texto das linhas (menos a primeira)">🧹 Limpar</button>`;
+      <button type="button" data-k="mais-l">+ Linha</button>
+      ${b.m ? '' : '<button type="button" data-k="mais-c">+ Coluna</button>'}
+      <button type="button" data-k="colar" title="Cole células copiadas do Excel/Google Planilhas">Colar do Excel</button>
+      ${D.planilhas && D.planilhas.length ? '<button type="button" data-k="importar">Importar planilha</button>' : ''}
+      <button type="button" data-k="limpar" title="Apaga o texto das linhas (menos a primeira)">Limpar</button>`;
     ferr.addEventListener('click', (e) => {
       const k = e.target.dataset.k;
       if (!k) return;
@@ -167,11 +167,11 @@
       for (let c = 0; c < nC; c++) {
         const td = el('td', 'ctrl-linha');
         td.style.cssText = 'text-align:center;padding:0 0 2px!important;width:auto';
-        const x = el('button', null, '✕');
+        const x = el('button', null, '×');
         x.title = 'Remover esta coluna';
         x.type = 'button';
         x.onclick = () => removerColuna(b, c);
-        const mais = el('button', null, '＋');
+        const mais = el('button', null, '+');
         mais.title = 'Inserir coluna depois desta';
         mais.type = 'button';
         mais.onclick = () => inserirColuna(b, c);
@@ -197,7 +197,7 @@
       });
       const ctrl = el('td', 'ctrl-linha');
       const box = el('div', 'ferr-linha');
-      [['↑＋', 'Inserir linha acima', () => inserirLinha(b, li, true)], ['↓＋', 'Inserir linha abaixo', () => inserirLinha(b, li, false)], ['✕', 'Remover linha', () => removerLinha(b, li)]].forEach(([tx, title, fn]) => {
+      [['+↑', 'Inserir linha acima', () => inserirLinha(b, li, true)], ['+↓', 'Inserir linha abaixo', () => inserirLinha(b, li, false)], ['×', 'Remover linha', () => removerLinha(b, li)]].forEach(([tx, title, fn]) => {
         const bt = el('button', null, tx);
         bt.title = title;
         bt.type = 'button';
@@ -653,9 +653,9 @@
       if (j.url) { marcarSujo(false); location.href = j.url; return; }
       hash = j.hash;
       marcarSujo(false);
-      status.textContent = '✔ Salvo às ' + j.hora;
+      status.textContent = 'salvo às ' + j.hora;
     } catch (e) {
-      status.textContent = '✖ ' + e.message;
+      status.textContent = 'erro: ' + e.message;
       alert('Erro ao salvar: ' + e.message);
     }
   }
@@ -692,7 +692,7 @@
   });
   window.addEventListener('beforeunload', (e) => { if (sujo) { e.preventDefault(); e.returnValue = ''; } });
 
-  const imp = el('button', 'btn btn-leve', '🖨 Imprimir');
+  const imp = el('button', 'btn btn-leve', 'Imprimir');
   imp.dataset.acao = 'imprimir';
   status.before(imp);
 

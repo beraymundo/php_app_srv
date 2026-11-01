@@ -1,7 +1,6 @@
 {
   "nome": "Escala de Liturgia",
   "descricao": "Escala mensal (Word) e planilha de planejamento. Importe a aba do mês direto para a tabela.",
-  "icone": "📅",
   "tipo": "documentos",
   "ordem": 1,
   "importar_planilha": true,

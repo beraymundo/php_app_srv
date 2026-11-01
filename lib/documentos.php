@@ -60,16 +60,15 @@ final class Documentos
         cabecalho_ferramenta($f);
         ?>
 <div class="titulo-pagina">
-  <span class="icone-grande"><?= h($f->icone) ?></span>
   <div><h1><?= h($f->nome) ?></h1><p class="mudo"><?= h($f->descricao) ?></p></div>
 </div>
 <?php barra_voltar($f); ?>
 
 <section class="cartao">
   <div class="cartao-topo">
-    <h2>📄 Documentos</h2>
+    <h2>Documentos</h2>
     <div class="grupo">
-      <button class="btn" data-abrir="#up-doc">⬆ Enviar arquivo</button>
+      <button class="btn" data-abrir="#up-doc">Enviar arquivo</button>
       <?php link_lixeira($f); ?>
     </div>
   </div>
@@ -87,16 +86,16 @@ final class Documentos
       <td><?= icone_arquivo($d['ext']) ?> <a href="<?= h($f->url(['a' => 'editar', 'f' => $d['rel']])) ?>"><?= h($d['nome']) ?></a></td>
       <td class="mudo nao-celular"><?= data_legivel($d['mtime']) ?></td>
       <td class="acoes">
-        <a class="btn btn-p btn-primario" href="<?= h($f->url(['a' => 'editar', 'f' => $d['rel']])) ?>">✎ Editar</a>
-        <a class="btn btn-p" href="<?= h($f->url(['a' => 'baixar', 'f' => $d['rel']])) ?>" title="Baixar">⬇</a>
+        <a class="btn btn-p btn-primario" href="<?= h($f->url(['a' => 'editar', 'f' => $d['rel']])) ?>">Editar</a>
+        <a class="btn btn-p" href="<?= h($f->url(['a' => 'baixar', 'f' => $d['rel']])) ?>" title="Baixar">Baixar</a>
         <?php if (soffice()): ?><a class="btn btn-p" href="<?= h($f->url(['a' => 'pdf', 'f' => $d['rel']])) ?>" title="Gerar PDF">PDF</a><?php endif; ?>
         <details class="menu">
-          <summary class="btn btn-p">⋯</summary>
+          <summary class="btn btn-p" title="Mais opções">...</summary>
           <div class="menu-itens">
-            <a href="<?= h($f->url(['a' => 'versoes', 'f' => $d['rel']])) ?>">🕘 Versões anteriores (<?= $nv ?>)</a>
-            <form method="post" action="<?= h($f->url(['a' => 'duplicar'])) ?>"><input type="hidden" name="f" value="<?= h($d['rel']) ?>"><button>⧉ Duplicar</button></form>
-            <form method="post" action="<?= h($f->url(['a' => 'renomear'])) ?>" data-renomear="<?= h(pathinfo($d['nome'], PATHINFO_FILENAME)) ?>"><input type="hidden" name="f" value="<?= h($d['rel']) ?>"><input type="hidden" name="novo"><button>✏ Renomear</button></form>
-            <form method="post" action="<?= h($f->url(['a' => 'excluir'])) ?>" data-confirmar="Mover &quot;<?= h($d['nome']) ?>&quot; para a lixeira?"><input type="hidden" name="f" value="<?= h($d['rel']) ?>"><button class="perigo">🗑 Excluir</button></form>
+            <a href="<?= h($f->url(['a' => 'versoes', 'f' => $d['rel']])) ?>">Versões anteriores (<?= $nv ?>)</a>
+            <form method="post" action="<?= h($f->url(['a' => 'duplicar'])) ?>"><input type="hidden" name="f" value="<?= h($d['rel']) ?>"><button>Duplicar</button></form>
+            <form method="post" action="<?= h($f->url(['a' => 'renomear'])) ?>" data-renomear="<?= h(pathinfo($d['nome'], PATHINFO_FILENAME)) ?>"><input type="hidden" name="f" value="<?= h($d['rel']) ?>"><input type="hidden" name="novo"><button>Renomear</button></form>
+            <form method="post" action="<?= h($f->url(['a' => 'excluir'])) ?>" data-confirmar="Mover &quot;<?= h($d['nome']) ?>&quot; para a lixeira?"><input type="hidden" name="f" value="<?= h($d['rel']) ?>"><button class="perigo">Excluir</button></form>
           </div>
         </details>
       </td>
@@ -108,8 +107,8 @@ final class Documentos
 
 <section class="cartao">
   <div class="cartao-topo">
-    <h2>📐 Modelos</h2>
-    <button class="btn" data-abrir="#up-mod">⬆ Enviar modelo</button>
+    <h2>Modelos</h2>
+    <button class="btn" data-abrir="#up-mod">Enviar modelo</button>
   </div>
   <p class="mudo pequeno">O modelo é a base. "Novo documento" faz uma cópia dele para você editar sem estragar o original.</p>
   <form id="up-mod" class="painel-oculto" method="post" enctype="multipart/form-data" action="<?= h($f->url(['a' => 'upload'])) ?>">
@@ -127,14 +126,14 @@ final class Documentos
     <div class="modelo-topo">
       <span><?= icone_arquivo($m['ext']) ?> <strong><?= h($m['nome']) ?></strong> <small class="mudo"><?= data_legivel($m['mtime']) ?></small></span>
       <span class="acoes">
-        <button class="btn btn-p btn-primario" data-abrir="#novo-<?= $i ?>">＋ Novo documento</button>
-        <a class="btn btn-p" href="<?= h($f->url(['a' => 'editar', 'f' => $m['rel']])) ?>">✎ Editar modelo</a>
-        <a class="btn btn-p" href="<?= h($f->url(['a' => 'baixar', 'f' => $m['rel']])) ?>">⬇</a>
+        <button class="btn btn-p btn-primario" data-abrir="#novo-<?= $i ?>">+ Novo documento</button>
+        <a class="btn btn-p" href="<?= h($f->url(['a' => 'editar', 'f' => $m['rel']])) ?>">Editar modelo</a>
+        <a class="btn btn-p" href="<?= h($f->url(['a' => 'baixar', 'f' => $m['rel']])) ?>">Baixar</a>
         <details class="menu">
-          <summary class="btn btn-p">⋯</summary>
+          <summary class="btn btn-p" title="Mais opções">...</summary>
           <div class="menu-itens">
-            <a href="<?= h($f->url(['a' => 'versoes', 'f' => $m['rel']])) ?>">🕘 Versões anteriores</a>
-            <form method="post" action="<?= h($f->url(['a' => 'excluir'])) ?>" data-confirmar="Mover o modelo para a lixeira?"><input type="hidden" name="f" value="<?= h($m['rel']) ?>"><button class="perigo">🗑 Excluir</button></form>
+            <a href="<?= h($f->url(['a' => 'versoes', 'f' => $m['rel']])) ?>">Versões anteriores</a>
+            <form method="post" action="<?= h($f->url(['a' => 'excluir'])) ?>" data-confirmar="Mover o modelo para a lixeira?"><input type="hidden" name="f" value="<?= h($m['rel']) ?>"><button class="perigo">Excluir</button></form>
           </div>
         </details>
       </span>
@@ -289,22 +288,22 @@ final class Documentos
         $cfg = config('backup');
         ?>
 <section class="cartao">
-  <h2>🕘 Versões anteriores de <?= h(basename($rel)) ?></h2>
+  <h2>Versões anteriores de <?= h(basename($rel)) ?></h2>
   <p class="mudo pequeno">Cada vez que você salva, a versão anterior fica guardada aqui. São mantidas até <?= $cfg['max_versoes'] ?> versões; as com mais de <?= $cfg['dias'] ?> dias são apagadas (as <?= $cfg['min_versoes'] ?> mais recentes ficam sempre).</p>
   <?php if (in_array(strtolower(pathinfo($rel, PATHINFO_EXTENSION)), self::EXTS, true)): ?>
-  <p><a class="btn btn-primario" href="<?= h($f->url(['a' => 'editar', 'f' => $rel])) ?>">✎ Abrir versão atual</a></p>
+  <p><a class="btn btn-primario" href="<?= h($f->url(['a' => 'editar', 'f' => $rel])) ?>">Abrir versão atual</a></p>
   <?php endif; ?>
   <?php if (!$vs): ?><p class="mudo">Nenhuma versão anterior ainda.</p><?php else: ?>
   <table class="lista">
     <?php foreach ($vs as $v): ?>
     <tr>
-      <td>🕘 <?= data_legivel($v['mtime']) ?></td>
+      <td><?= data_legivel($v['mtime']) ?></td>
       <td class="mudo"><?= tamanho_legivel($v['tamanho']) ?></td>
       <td class="acoes">
-        <a class="btn btn-p" href="<?= h($f->url(['a' => 'baixar_versao', 'f' => $rel, 'v' => $v['nome']])) ?>">⬇ Baixar</a>
+        <a class="btn btn-p" href="<?= h($f->url(['a' => 'baixar_versao', 'f' => $rel, 'v' => $v['nome']])) ?>">Baixar</a>
         <form method="post" class="inline" action="<?= h($f->url(['a' => 'restaurar_versao'])) ?>" data-confirmar="Voltar o arquivo para esta versão? (a versão atual também fica guardada no histórico)">
           <input type="hidden" name="f" value="<?= h($rel) ?>"><input type="hidden" name="v" value="<?= h($v['nome']) ?>">
-          <button class="btn btn-p">↺ Restaurar</button>
+          <button class="btn btn-p">Restaurar</button>
         </form>
       </td>
     </tr>
@@ -373,14 +372,14 @@ final class Documentos
         ?>
 <div class="editor-barra" id="barra">
   <a class="btn" href="<?= h($voltar) ?>" data-sair>← Voltar</a>
-  <button class="btn btn-primario" data-acao="salvar" title="Ctrl+S">💾 Salvar</button>
+  <button class="btn btn-primario" data-acao="salvar" title="Ctrl+S">Salvar</button>
   <button class="btn" data-acao="salvar-como">Salvar como…</button>
-  <button class="btn" data-acao="desfazer" title="Desfazer alteração de estrutura">↶ Desfazer</button>
+  <button class="btn" data-acao="desfazer" title="Desfazer alteração de estrutura">Desfazer</button>
   <?php if ($ext === 'docx'): ?>
-  <button class="btn" data-acao="buscar">🔍 Localizar / substituir</button>
+  <button class="btn" data-acao="buscar">Localizar / substituir</button>
   <?php endif; ?>
-  <a class="btn btn-leve" href="<?= h($f->url(['a' => 'baixar', 'f' => $rel])) ?>" data-sair>⬇ Baixar</a>
-  <a class="btn btn-leve" href="<?= h($f->url(['a' => 'versoes', 'f' => $rel])) ?>" data-sair>🕘 Versões</a>
+  <a class="btn btn-leve" href="<?= h($f->url(['a' => 'baixar', 'f' => $rel])) ?>" data-sair>Baixar</a>
+  <a class="btn btn-leve" href="<?= h($f->url(['a' => 'versoes', 'f' => $rel])) ?>" data-sair>Versões</a>
   <span id="status" class="status"></span>
 </div>
 <div id="painel-busca" class="painel-flutuante" hidden>

@@ -74,7 +74,7 @@ inicio_ferramenta($f);
       <label>Página <select name="orientacao"><option value="retrato">Em pé</option><option value="paisagem">Deitada</option></select></label>
       <label class="check"><input type="checkbox" name="numerar" checked> Numerar a 1ª coluna</label>
     </div>
-    <div class="largo"><button class="btn btn-primario">📋 Gerar Word</button></div>
+    <div class="largo"><button class="btn btn-primario">Gerar Word</button></div>
   </form>
 </section>
 <?php lista_saidas($f); ?>

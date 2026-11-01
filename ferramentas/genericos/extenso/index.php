@@ -12,8 +12,8 @@ inicio_ferramenta($f);
   </div>
   <p class="destaque" id="r" style="font-size:1.4rem;font-weight:600"></p>
   <div class="grupo" style="justify-content:center">
-    <button class="btn btn-primario" id="copiar">📋 Copiar</button>
-    <button class="btn" id="copiar2">📋 Copiar "R$ X (por extenso)"</button>
+    <button class="btn btn-primario" id="copiar">Copiar</button>
+    <button class="btn" id="copiar2">Copiar "R$ X (por extenso)"</button>
   </div>
 </section>
 <script>

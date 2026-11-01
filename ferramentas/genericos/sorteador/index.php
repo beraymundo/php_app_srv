@@ -29,13 +29,13 @@ inicio_ferramenta($f);
       <label>Quantos sortear <input type="number" name="qtd" value="1" min="1"></label>
       <label class="check"><input type="checkbox" name="repetir"> Permitir repetir</label>
       <label class="largo m-num">Excluir números (já sorteados etc.) <input name="excluir" placeholder="Ex.: 5, 12, 40"></label>
-      <div class="largo"><button class="btn btn-primario" id="sortear">🎲 Sortear</button></div>
+      <div class="largo"><button class="btn btn-primario" id="sortear">Sortear</button></div>
     </div>
   </section>
   <section class="cartao">
     <h2>Resultado</h2>
     <div class="destaque" id="res">—</div>
-    <div class="grupo" style="justify-content:center"><button class="btn" id="copiar" hidden>📋 Copiar</button></div>
+    <div class="grupo" style="justify-content:center"><button class="btn" id="copiar" hidden>Copiar</button></div>
     <h2 style="margin-top:18px">Últimos sorteios</h2>
     <div class="saida-texto pequeno" id="hist"><?= $historico ? h(implode("\n", array_reverse($historico))) : '<span class="mudo">Nenhum ainda.</span>' ?></div>
   </section>

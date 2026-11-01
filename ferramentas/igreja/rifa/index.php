@@ -98,7 +98,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $a === 'gerar') {
 cabecalho_ferramenta($f);
 ?>
 <div class="titulo-pagina">
-  <span class="icone-grande"><?= h($f->icone) ?></span>
   <div><h1><?= h($f->nome) ?></h1><p class="mudo"><?= h($f->descricao) ?></p></div>
 </div>
 <?php barra_voltar($f); ?>
@@ -118,7 +117,7 @@ cabecalho_ferramenta($f);
     <label>Nome da pasta de saída <input name="pasta" placeholder="automático (prêmio + data)"></label>
     <label class="check largo"><input type="checkbox" name="por_folha_arquivo" value="1" <?= $padrao['por_folha_arquivo'] ? 'checked' : '' ?>> Também gerar um arquivo separado para cada folha (como o programa antigo fazia)</label>
     <p class="largo mudo pequeno" id="resumo"></p>
-    <div class="largo"><button class="btn btn-primario">🎟️ Gerar rifas</button></div>
+    <div class="largo"><button class="btn btn-primario">Gerar rifas</button></div>
   </form>
 </section>
 

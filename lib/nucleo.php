@@ -131,6 +131,31 @@ function gravar_json(string $arq, array $dados): void
     file_put_contents($arq, json_encode($dados, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
 }
 
+/**
+ * Estado em JSON de uma ferramenta (listas, cadastros...). Atende o salvamento automático
+ * (POST JSON em ?a=salvar_estado) e devolve o estado atual. Guarda uma cópia de segurança
+ * a cada 6 horas no histórico de versões.
+ */
+function estado_ferramenta(Ferramenta $f, string $a, string $rel = 'dados/estado.json'): array
+{
+    if ($a === 'salvar_estado' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        $in = json_decode((string)file_get_contents('php://input'), true);
+        if (!is_array($in)) {
+            json_saida(['erro' => 'Dados inválidos.'], 400);
+        }
+        $p = $f->caminho($rel);
+        if (is_file($p)) {
+            $vs = $f->versoes($rel);
+            if (!$vs || $vs[0]['mtime'] < time() - 6 * 3600) {
+                $f->backup($rel);
+            }
+        }
+        gravar_json($p, $in);
+        json_saida(['ok' => true, 'hora' => date('H:i:s')]);
+    }
+    return ler_json($f->caminho($rel));
+}
+
 function soffice(): ?string
 {
     $c = config('soffice');
@@ -158,7 +183,7 @@ function categorias(): array
             'id' => $id,
             'dir' => $dir,
             'nome' => $cfg['nome'] ?? ucfirst($id),
-            'icone' => $cfg['icone'] ?? '📁',
+            'icone' => $cfg['icone'] ?? '',
             'descricao' => $cfg['descricao'] ?? '',
             'ordem' => (int)($cfg['ordem'] ?? 50),
             'qtd' => count(glob("$dir/*/ferramenta.json") ?: []),
@@ -203,7 +228,7 @@ final class Ferramenta
         $this->cfg = ler_json("$this->dir/ferramenta.json");
         $this->nome = $this->cfg['nome'] ?? $id;
         $this->descricao = $this->cfg['descricao'] ?? '';
-        $this->icone = $this->cfg['icone'] ?? '🔧';
+        $this->icone = $this->cfg['icone'] ?? '';
         $this->tipo = $this->cfg['tipo'] ?? 'documentos';
         $this->ordem = (int)($this->cfg['ordem'] ?? 50);
     }
