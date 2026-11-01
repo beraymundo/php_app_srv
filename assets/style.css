@@ -105,6 +105,11 @@ code, kbd {
 .trilha a:hover { color: var(--primario); }
 .trilha .sep { color: var(--borda-forte); }
 .trilha strong { color: var(--texto); font-weight: 500; }
+.usuario-topo { margin-left: auto; display: inline-flex; gap: 12px; font-size: .8rem; }
+.usuario-topo a { color: var(--mudo); text-decoration: none; }
+.usuario-topo a:first-child { color: var(--texto); }
+.usuario-topo a:hover { color: var(--primario); }
+.usuario-topo + .tema { margin-left: 0; }
 .tema { margin-left: auto; display: inline-flex; flex-direction: row; align-items: center; gap: 6px; font-size: .8rem; color: var(--mudo); font-weight: 400; }
 .tema select {
   width: auto; font: inherit; font-size: .8rem; color: var(--texto); background: var(--fundo);

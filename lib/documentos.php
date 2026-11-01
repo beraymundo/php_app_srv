@@ -16,6 +16,7 @@ final class Documentos
 
     public static function rotear(Ferramenta $f, string $a): void
     {
+        self::verificarPermissao($a);
         match ($a) {
             'editar' => self::editar($f),
             'salvar' => self::salvar($f),
@@ -31,6 +32,26 @@ final class Documentos
             'pdf' => self::pdf($f),
             default => self::lista($f),
         };
+    }
+
+    /** Mexer nos modelos (compartilhados) é só para o administrador; usar é para todos. */
+    private static function verificarPermissao(string $a): void
+    {
+        if (eh_admin()) {
+            return;
+        }
+        $alvo = (string)($_POST['f'] ?? $_GET['f'] ?? '');
+        if ($a === 'salvar') {
+            $in = json_decode((string)file_get_contents('php://input'), true) ?: [];
+            $alvo = (string)($in['arquivo'] ?? '');
+            if (!empty($in['como']) && empty($in['comoModelo'])) {
+                return; // "salvar como" um documento a partir do modelo: permitido
+            }
+        }
+        $escreve = in_array($a, ['salvar', 'renomear', 'duplicar', 'restaurar_versao'], true);
+        if (($escreve && Ferramenta::ehModelo($alvo)) || ($a === 'upload' && ($_POST['sub'] ?? '') === 'modelos')) {
+            exigir_admin('Alterar os modelos');
+        }
     }
 
     private static function rel(Ferramenta $f, ?string $v = null): string
@@ -108,9 +129,9 @@ final class Documentos
 <section class="cartao">
   <div class="cartao-topo">
     <h2>Modelos</h2>
-    <button class="btn" data-abrir="#up-mod">Enviar modelo</button>
+    <?php if (eh_admin()): ?><button class="btn" data-abrir="#up-mod">Enviar modelo</button><?php endif; ?>
   </div>
-  <p class="mudo pequeno">O modelo é a base. "Novo documento" faz uma cópia dele para você editar sem estragar o original.</p>
+  <p class="mudo pequeno">O modelo é a base, compartilhado por todos os usuários. "Novo documento" faz uma cópia sua para editar sem estragar o original.</p>
   <form id="up-mod" class="painel-oculto" method="post" enctype="multipart/form-data" action="<?= h($f->url(['a' => 'upload'])) ?>">
     <input type="hidden" name="sub" value="modelos">
     <input type="file" name="arquivos[]" accept=".docx,.xlsx" multiple required>
@@ -127,15 +148,15 @@ final class Documentos
       <span><?= icone_arquivo($m['ext']) ?> <strong><?= h($m['nome']) ?></strong> <small class="mudo"><?= data_legivel($m['mtime']) ?></small></span>
       <span class="acoes">
         <button class="btn btn-p btn-primario" data-abrir="#novo-<?= $i ?>">+ Novo documento</button>
-        <a class="btn btn-p" href="<?= h($f->url(['a' => 'editar', 'f' => $m['rel']])) ?>">Editar modelo</a>
+        <?php if (eh_admin()): ?><a class="btn btn-p" href="<?= h($f->url(['a' => 'editar', 'f' => $m['rel']])) ?>">Editar modelo</a><?php endif; ?>
         <a class="btn btn-p" href="<?= h($f->url(['a' => 'baixar', 'f' => $m['rel']])) ?>">Baixar</a>
-        <details class="menu">
+        <?php if (eh_admin()): ?><details class="menu">
           <summary class="btn btn-p" title="Mais opções">...</summary>
           <div class="menu-itens">
             <a href="<?= h($f->url(['a' => 'versoes', 'f' => $m['rel']])) ?>">Versões anteriores</a>
             <form method="post" action="<?= h($f->url(['a' => 'excluir'])) ?>" data-confirmar="Mover o modelo para a lixeira?"><input type="hidden" name="f" value="<?= h($m['rel']) ?>"><button class="perigo">Excluir</button></form>
           </div>
-        </details>
+        </details><?php endif; ?>
       </span>
     </div>
     <form id="novo-<?= $i ?>" class="painel-oculto form-grade" method="post" action="<?= h($f->url(['a' => 'novo'])) ?>">
@@ -243,9 +264,9 @@ final class Documentos
                 throw new RuntimeException('Já existe um arquivo com esse nome.');
             }
             rename($f->caminho($rel), $f->caminho($destino));
-            $vAnt = $f->pasta('backups') . '/' . rawurlencode($rel);
+            $vAnt = $f->pastaVersoes($rel);
             if (is_dir($vAnt)) {
-                @rename($vAnt, $f->pasta('backups') . '/' . rawurlencode($destino));
+                @rename($vAnt, $f->pastaVersoes($destino));
             }
             flash('Renomeado para "' . $novo . '".');
         }

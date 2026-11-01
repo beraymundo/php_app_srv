@@ -15,35 +15,52 @@ require __DIR__ . '/lib/documentos.php';
 require __DIR__ . '/lib/backup.php';
 require __DIR__ . '/lib/painel.php';
 
+// Sessão longa (30 dias) para não pedir senha toda hora no mesmo aparelho.
+ini_set('session.gc_maxlifetime', (string)(30 * 86400));
+session_set_cookie_params(['lifetime' => 30 * 86400, 'httponly' => true, 'samesite' => 'Lax']);
 session_start();
 
-// ---------------------------------------------------------------- senha (opcional)
-if (config('senha') !== '' && empty($_SESSION['logado'])) {
-    if (isset($_POST['senha']) && hash_equals((string)config('senha'), (string)$_POST['senha'])) {
-        $_SESSION['logado'] = true;
-        redirecionar($_SERVER['REQUEST_URI']);
+$a = (string)($_GET['a'] ?? '');
+$pedeJson = str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') || str_contains($_SERVER['CONTENT_TYPE'] ?? '', 'application/json');
+
+// ---------------------------------------------------------------- usuários
+try {
+    if (!usuarios()) {
+        pagina_primeiro_acesso();
+        exit;
     }
-    cabecalho('Entrar');
-    ?>
-    <form method="post" class="cartao login">
-      <h1>Entrar</h1>
-      <?php if (isset($_POST['senha'])): ?><div class="aviso aviso-erro">Senha incorreta.</div><?php endif; ?>
-      <input type="password" name="senha" placeholder="Senha" autofocus>
-      <button class="btn btn-primario">Entrar</button>
-    </form>
-    <?php
+    if ($a === 'sair') {
+        $_SESSION = [];
+        session_regenerate_id(true);
+        redirecionar('index.php');
+    }
+    if (!usuario_atual()) {
+        if ($pedeJson) {
+            json_saida(['erro' => 'Sua sessão expirou. Recarregue a página e entre de novo.'], 401);
+        }
+        pagina_login();
+        exit;
+    }
+} catch (Throwable $e) {
+    cabecalho('Erro');
+    echo '<div class="aviso aviso-erro">' . h($e->getMessage()) . '</div><p><a class="btn" href="index.php">Tentar de novo</a></p>';
     rodape();
     exit;
 }
 
 $c = (string)($_GET['c'] ?? '');
 $t = (string)($_GET['t'] ?? '');
-$a = (string)($_GET['a'] ?? '');
 
 try {
     Backup::automatico();
     if ($c === '' && str_starts_with($a, 'backup')) {
+        exigir_admin('O backup geral');
         pagina_backup($a);
+    } elseif ($c === '' && str_starts_with($a, 'usuario')) {
+        exigir_admin('Gerenciar usuários');
+        pagina_usuarios($a);
+    } elseif ($c === '' && $a === 'conta') {
+        pagina_conta();
     } elseif ($c === '') {
         pagina_inicio();
     } elseif ($t === '') {
@@ -64,8 +81,7 @@ try {
         }
     }
 } catch (Throwable $e) {
-    $json = str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') || str_contains($_SERVER['CONTENT_TYPE'] ?? '', 'application/json');
-    if ($json) {
+    if ($pedeJson) {
         json_saida(['erro' => $e->getMessage()], 400);
     }
     if (!headers_sent()) {
@@ -80,11 +96,215 @@ try {
     rodape();
 }
 
+
+// ==================================================================== usuários
+
+function pagina_primeiro_acesso(): void
+{
+    $erro = null;
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        try {
+            if ((string)$_POST['senha'] !== (string)$_POST['senha2']) {
+                throw new RuntimeException('As senhas não conferem.');
+            }
+            $login = strtolower(trim((string)$_POST['login']));
+            criar_usuario($login, (string)$_POST['nome'], (string)$_POST['senha'], true);
+            $n = migrar_dados_antigos($login);
+            entrar($login, (string)$_POST['senha']);
+            flash('Administrador criado.' . ($n ? ' Os dados que já existiam agora são seus.' : '') . ' Crie os outros usuários em "usuários", no topo.');
+            redirecionar('index.php');
+        } catch (RuntimeException $e) {
+            $erro = $e->getMessage();
+        }
+    }
+    cabecalho('Primeiro acesso');
+    ?>
+<form method="post" class="cartao login">
+  <h1>Primeiro acesso</h1>
+  <p class="mudo pequeno" style="margin:0">Crie a conta do administrador. Ele cria os outros usuários e cuida dos modelos e do backup. Os dados que já existem passam a ser dele.</p>
+  <?php if ($erro): ?><div class="aviso aviso-erro"><?= h($erro) ?></div><?php endif; ?>
+  <label>Usuário <input name="login" value="<?= h($_POST['login'] ?? 'bernardo') ?>" required autocapitalize="none"></label>
+  <label>Nome <input name="nome" value="<?= h($_POST['nome'] ?? 'Bernardo') ?>"></label>
+  <label>Senha <input type="password" name="senha" required autofocus></label>
+  <label>Repita a senha <input type="password" name="senha2" required></label>
+  <button class="btn btn-primario">Criar e entrar</button>
+</form>
+<?php
+    rodape();
+}
+
+function pagina_login(): void
+{
+    $erro = false;
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
+        if (entrar((string)$_POST['login'], (string)$_POST['senha'])) {
+            $volta = (string)($_POST['volta'] ?? '');
+            redirecionar(preg_match('#^index\.php(\?|$)#', $volta) && !str_contains($volta, 'a=sair') ? $volta : 'index.php');
+        }
+        $erro = true;
+    }
+    $volta = basename((string)parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH)) === 'index.php' ? 'index.php' . (($q = (string)parse_url($_SERVER['REQUEST_URI'], PHP_URL_QUERY)) ? "?$q" : '') : 'index.php';
+    cabecalho('Entrar');
+    ?>
+<form method="post" class="cartao login">
+  <h1>Entrar</h1>
+  <?php if ($erro): ?><div class="aviso aviso-erro">Usuário ou senha incorretos.</div><?php endif; ?>
+  <input type="hidden" name="volta" value="<?= h($_POST['volta'] ?? $volta) ?>">
+  <label>Usuário <input name="login" value="<?= h($_POST['login'] ?? '') ?>" required autocapitalize="none" autocomplete="username" <?= empty($_POST['login']) ? 'autofocus' : '' ?>></label>
+  <label>Senha <input type="password" name="senha" required autocomplete="current-password" <?= !empty($_POST['login']) ? 'autofocus' : '' ?>></label>
+  <button class="btn btn-primario">Entrar</button>
+</form>
+<?php
+    rodape();
+}
+
+function pagina_conta(): void
+{
+    $u = usuario_atual();
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $todos = usuarios();
+        if (!password_verify((string)$_POST['atual'], $todos[$u['login']]['hash'])) {
+            throw new RuntimeException('A senha atual está errada.');
+        }
+        if ((string)$_POST['nova'] !== (string)$_POST['nova2']) {
+            throw new RuntimeException('As senhas novas não conferem.');
+        }
+        validar_senha((string)$_POST['nova']);
+        $todos[$u['login']]['hash'] = password_hash((string)$_POST['nova'], PASSWORD_DEFAULT);
+        if (trim((string)($_POST['nome'] ?? '')) !== '') {
+            $todos[$u['login']]['nome'] = trim((string)$_POST['nome']);
+        }
+        salvar_usuarios($todos);
+        flash('Senha alterada.');
+        redirecionar('index.php?a=conta');
+    }
+    cabecalho('Minha conta', [['Minha conta', null]]);
+    ?>
+<div class="titulo-pagina"><div><h1><?= h($u['nome']) ?></h1><p class="mudo">usuário <code><?= h($u['login']) ?></code> · <?= $u['admin'] ? 'administrador' : 'usuário' ?></p></div></div>
+<div class="barra-voltar"><a class="btn" href="index.php">← Início</a><a class="btn btn-leve" href="index.php?a=sair">Sair</a></div>
+<form method="post" class="cartao form-grade" style="max-width:640px">
+  <h2 class="largo">Trocar senha</h2>
+  <label class="largo">Nome <input name="nome" value="<?= h($u['nome']) ?>"></label>
+  <label class="largo">Senha atual <input type="password" name="atual" required autocomplete="current-password"></label>
+  <label>Nova senha <input type="password" name="nova" required autocomplete="new-password"></label>
+  <label>Repita a nova senha <input type="password" name="nova2" required autocomplete="new-password"></label>
+  <div class="largo"><button class="btn btn-primario">Salvar</button></div>
+</form>
+<?php
+    rodape();
+}
+
+function pagina_usuarios(string $a): void
+{
+    $todos = usuarios();
+    $eu = usuario_login();
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $login = strtolower(trim((string)($_POST['login'] ?? '')));
+        switch ($a) {
+            case 'usuario_novo':
+                criar_usuario($login, (string)$_POST['nome'], (string)$_POST['senha'], !empty($_POST['admin']));
+                flash("Usuário \"$login\" criado. Passe a senha para a pessoa; ela pode trocar em \"minha conta\".");
+                break;
+            case 'usuario_senha':
+                isset($todos[$login]) || throw new RuntimeException('Usuário não encontrado.');
+                validar_senha((string)$_POST['senha']);
+                $todos[$login]['hash'] = password_hash((string)$_POST['senha'], PASSWORD_DEFAULT);
+                salvar_usuarios($todos);
+                flash("Senha de \"$login\" redefinida.");
+                break;
+            case 'usuario_admin':
+                isset($todos[$login]) || throw new RuntimeException('Usuário não encontrado.');
+                if ($login === $eu) {
+                    throw new RuntimeException('Você não pode tirar o seu próprio acesso de administrador.');
+                }
+                $todos[$login]['admin'] = empty($todos[$login]['admin']);
+                salvar_usuarios($todos);
+                flash("\"$login\" agora é " . ($todos[$login]['admin'] ? 'administrador.' : 'usuário comum.'));
+                break;
+            case 'usuario_excluir':
+                isset($todos[$login]) || throw new RuntimeException('Usuário não encontrado.');
+                if ($login === $eu) {
+                    throw new RuntimeException('Você não pode excluir a sua própria conta.');
+                }
+                unset($todos[$login]);
+                salvar_usuarios($todos);
+                $msg = "Conta \"$login\" excluída.";
+                if (!empty($_POST['apagar_dados'])) {
+                    apagar_recursivo(DIR_USUARIOS . "/$login");
+                    $msg .= ' Os dados também foram apagados.';
+                } else {
+                    $msg .= ' Os dados dela continuam em usuarios/' . $login . ' (e voltam se recriar a conta com o mesmo nome).';
+                }
+                flash($msg);
+                break;
+        }
+        redirecionar('index.php?a=usuarios');
+    }
+    cabecalho('Usuários', [['Usuários', null]]);
+    ?>
+<div class="titulo-pagina"><div><h1>Usuários</h1><p class="mudo">Cada pessoa tem os próprios documentos, listas e finanças. Os modelos são de todos.</p></div></div>
+<div class="barra-voltar"><a class="btn" href="index.php">← Início</a><a class="btn btn-leve" href="index.php?a=backup">Backup geral</a></div>
+<section class="cartao">
+  <table class="dados">
+    <thead><tr><th>usuário</th><th>nome</th><th>acesso</th><th class="num nao-celular">dados</th><th></th></tr></thead>
+    <tbody>
+    <?php foreach ($todos as $login => $u):
+        $dir = DIR_USUARIOS . "/$login";
+        $tam = 0;
+        if (is_dir($dir)) {
+            foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS)) as $arq) {
+                $tam += $arq->getSize();
+            }
+        } ?>
+      <tr>
+        <td><code><?= h($login) ?></code><?= $login === $eu ? ' <span class="mudo pequeno">(você)</span>' : '' ?></td>
+        <td><?= h($u['nome']) ?></td>
+        <td><?= !empty($u['admin']) ? '<span class="estado-ok">administrador</span>' : 'usuário' ?></td>
+        <td class="num mudo nao-celular"><?= tamanho_legivel($tam) ?></td>
+        <td class="num">
+          <details class="menu"><summary class="btn btn-p" title="Opções">...</summary>
+            <div class="menu-itens">
+              <form method="post" action="index.php?a=usuario_senha" data-senha><input type="hidden" name="login" value="<?= h($login) ?>"><input type="hidden" name="senha"><button>Redefinir senha</button></form>
+              <?php if ($login !== $eu): ?>
+              <form method="post" action="index.php?a=usuario_admin"><input type="hidden" name="login" value="<?= h($login) ?>"><button><?= !empty($u['admin']) ? 'Tornar usuário comum' : 'Tornar administrador' ?></button></form>
+              <form method="post" action="index.php?a=usuario_excluir" data-confirmar="Excluir a conta &quot;<?= h($login) ?>&quot;? Os dados ficam guardados."><input type="hidden" name="login" value="<?= h($login) ?>"><button class="perigo">Excluir conta</button></form>
+              <form method="post" action="index.php?a=usuario_excluir" data-confirmar="Excluir a conta &quot;<?= h($login) ?>&quot; E APAGAR todos os dados dela? Não dá para desfazer."><input type="hidden" name="login" value="<?= h($login) ?>"><input type="hidden" name="apagar_dados" value="1"><button class="perigo">Excluir conta e dados</button></form>
+              <?php endif; ?>
+            </div>
+          </details>
+        </td>
+      </tr>
+    <?php endforeach; ?>
+    </tbody>
+  </table>
+</section>
+<form method="post" action="index.php?a=usuario_novo" class="cartao form-grade">
+  <h2 class="largo">Novo usuário</h2>
+  <label>Usuário (para entrar) <input name="login" required placeholder="ex.: michelle" autocapitalize="none"></label>
+  <label>Nome <input name="nome" placeholder="ex.: Michelle"></label>
+  <label>Senha inicial <input name="senha" required autocomplete="new-password"></label>
+  <label class="check"><input type="checkbox" name="admin"> administrador</label>
+  <div class="largo"><button class="btn btn-primario">Criar usuário</button></div>
+</form>
+<script>
+document.addEventListener('submit', (e) => {
+  const f = e.target;
+  if (f.dataset.senha === undefined) return;
+  const s = prompt('Nova senha para ' + f.login.value + ':');
+  if (!s) { e.preventDefault(); return; }
+  f.senha.value = s;
+});
+</script>
+<?php
+    rodape();
+}
+
 // ==================================================================== páginas
 
 function pagina_inicio(): void
 {
     if (($_GET['a'] ?? '') === 'nova_categoria' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        exigir_admin('Criar categorias');
         $nome = trim((string)$_POST['nome']);
         $id = slug($nome);
         if ($nome === '' || is_dir(DIR_FERRAMENTAS . "/$id")) {
@@ -114,16 +334,20 @@ function pagina_inicio(): void
     <span class="bloco-qtd"><?= $cat['qtd'] ? $cat['qtd'] . ' ferramenta' . ($cat['qtd'] > 1 ? 's' : '') : 'vazia' ?></span>
   </a>
   <?php endforeach; ?>
+  <?php if (eh_admin()): ?>
   <button class="bloco bloco-novo" data-abrir="#nova-cat">
     <span class="bloco-caminho">mkdir</span><span class="bloco-nome">+ Nova categoria</span>
   </button>
+  <?php endif; ?>
 </div>
+<?php if (eh_admin()): ?>
 <form id="nova-cat" class="cartao painel-oculto form-grade" method="post" action="index.php?a=nova_categoria">
   <h2 class="largo">Nova categoria</h2>
   <label>Nome <input name="nome" required placeholder="Ex.: Trabalho"></label>
   <label class="largo">Descrição <input name="descricao"></label>
   <div class="largo"><button class="btn btn-primario">Criar</button></div>
 </form>
+<?php endif; ?>
 <?php
     rodape();
 }
@@ -203,6 +427,7 @@ function pagina_categoria(string $c): void
     $cat = $cats[$c] ?? throw new RuntimeException('Categoria não encontrada.');
 
     if (($_GET['a'] ?? '') === 'nova_ferramenta' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        exigir_admin('Criar ferramentas');
         $nome = trim((string)$_POST['nome']);
         $id = slug($nome);
         $dir = "{$cat['dir']}/$id";
@@ -258,11 +483,14 @@ function pagina_categoria(string $c): void
     <span class="bloco-desc"><?= h($f->descricao) ?></span>
   </a>
   <?php endforeach; ?>
+  <?php if (eh_admin()): ?>
   <button class="bloco bloco-novo" data-abrir="#nova-ferr">
     <span class="bloco-caminho">novo</span><span class="bloco-nome">+ Nova ferramenta de documento</span>
     <span class="bloco-desc">A partir de um .docx ou .xlsx modelo</span>
   </button>
+  <?php endif; ?>
 </div>
+<?php if (eh_admin()): ?>
 <form id="nova-ferr" class="cartao painel-oculto form-grade" method="post" enctype="multipart/form-data" action="index.php?c=<?= h($c) ?>&a=nova_ferramenta">
   <h2 class="largo">Nova ferramenta de documento</h2>
   <label>Nome <input name="nome" required placeholder="Ex.: Recibo de aluguel"></label>
@@ -270,6 +498,7 @@ function pagina_categoria(string $c): void
   <label class="largo">Arquivo modelo (.docx ou .xlsx) <input type="file" name="modelo" accept=".docx,.xlsx"></label>
   <div class="largo"><button class="btn btn-primario">Criar ferramenta</button></div>
 </form>
+<?php endif; ?>
 <?php
     rodape();
 }
@@ -309,6 +538,9 @@ function acoes_comuns(Ferramenta $f, string $a): bool
                 return false;
             }
             $rel = (string)($_POST['f'] ?? '');
+            if (Ferramenta::ehModelo($rel)) {
+                exigir_admin('Excluir modelos');
+            }
             $f->paraLixeira($rel);
             flash('"' . basename($rel) . '" foi para a lixeira (dá para restaurar por ' . config('lixeira_dias') . ' dias).');
             $volta = (string)($_POST['voltar'] ?? '');

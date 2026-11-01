@@ -31,6 +31,13 @@ function cabecalho(string $titulo, array $trilha = [], array $op = []): void
         <?php if ($url && $i < count($trilha) - 1): ?><a href="<?= h($url) ?>"><?= h($rot) ?></a><?php else: ?><strong><?= h($rot) ?></strong><?php endif; ?>
       <?php endforeach; ?>
     </nav>
+    <?php if ($eu = usuario_atual()): ?>
+    <span class="usuario-topo">
+      <a href="index.php?a=conta" title="Minha conta"><?= h($eu['login']) ?></a>
+      <?php if (!empty($eu['admin'])): ?><a href="index.php?a=usuarios">usuários</a><?php endif; ?>
+      <a href="index.php?a=sair">sair</a>
+    </span>
+    <?php endif; ?>
     <label class="tema">tema
       <select id="tema" aria-label="Tema">
         <option value="auto">auto</option>
@@ -55,7 +62,7 @@ function rodape(array $scripts = []): void
 </main>
 <footer class="rodape nao-imprimir">
   <span><kbd>/</kbd> buscar</span><span><kbd>Esc</kbd> voltar</span><span><kbd>?</kbd> atalhos</span>
-  <a href="index.php?a=backup">backup</a>
+  <?php if (eh_admin()): ?><a href="index.php?a=backup">backup</a><?php endif; ?>
 </footer>
 <script id="dados-nav" type="application/json"><?= json_encode(dados_navegacao(), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_INVALID_UTF8_SUBSTITUTE) ?></script>
 <?php foreach ($scripts as $s): ?>
@@ -76,6 +83,9 @@ function json_js(mixed $v): string
 function dados_navegacao(): array
 {
     $out = [];
+    if (!usuario_atual()) {
+        return $out;
+    }
     foreach (categorias() as $cat) {
         foreach (ferramentas($cat['id']) as $f) {
             $out[] = ['id' => $f->id, 'nome' => $f->nome, 'desc' => $f->descricao, 'cat' => $cat['nome'], 'catId' => $cat['id'], 'url' => $f->url()];

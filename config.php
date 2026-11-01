@@ -2,9 +2,7 @@
 return [
     'titulo' => 'Central de Ferramentas',
 
-    // Senha opcional. Deixe '' para não pedir senha (uso só no seu PC).
-    // Se for acessar pelo celular na rede de casa, é bom definir uma.
-    'senha' => '',
+    // Os usuários e senhas ficam em usuarios/usuarios.json (gerencie pela página "usuários").
 
     // Backups automáticos: a cada salvamento a versão anterior é guardada em <ferramenta>/backups/
     'backup' => [

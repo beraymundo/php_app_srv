@@ -15,6 +15,7 @@ require_once __DIR__ . '/zip.php';
 require_once __DIR__ . '/docx.php';
 require_once __DIR__ . '/xlsx.php';
 require_once __DIR__ . '/docxwriter.php';
+require_once __DIR__ . '/usuarios.php';
 
 function config(?string $chave = null): mixed
 {
@@ -238,7 +239,10 @@ final class Ferramenta
         return 'index.php?' . http_build_query(['c' => $this->cat, 't' => $this->id] + $q);
     }
 
-    /** Caminho absoluto seguro para um caminho relativo dentro da ferramenta. */
+    /**
+     * Caminho absoluto seguro para um caminho relativo dentro da ferramenta.
+     * "modelos/..." fica na pasta da ferramenta (compartilhado); o resto fica na pasta do usuário.
+     */
     public function caminho(string $rel): string
     {
         $rel = trim(str_replace('\\', '/', $rel), '/');
@@ -246,7 +250,19 @@ final class Ferramenta
         if ($rel === '' || !in_array($partes[0], self::PASTAS, true) || in_array('..', $partes, true) || in_array('.', $partes, true) || str_contains($rel, ':') || str_contains($rel, "\0")) {
             throw new RuntimeException('Caminho inválido.');
         }
-        return "$this->dir/$rel";
+        return ($partes[0] === 'modelos' ? $this->dir : $this->dirUsuario()) . "/$rel";
+    }
+
+    /** Pasta desta ferramenta dentro dos dados do usuário atual. */
+    public function dirUsuario(): string
+    {
+        return dir_dados_usuario() . "/$this->cat/$this->id";
+    }
+
+    /** Arquivos em "modelos/" são compartilhados entre todos os usuários. */
+    public static function ehModelo(string $rel): bool
+    {
+        return str_starts_with(trim(str_replace('\\', '/', $rel), '/'), 'modelos/');
     }
 
     public function pasta(string $sub): string
@@ -295,9 +311,11 @@ final class Ferramenta
 
     // ------------------------------------------------------------ backups
 
-    private function pastaVersoes(string $rel): string
+    /** Pasta do histórico de versões de um arquivo (a dos modelos é compartilhada). */
+    public function pastaVersoes(string $rel): string
     {
-        return $this->pasta('backups') . '/' . rawurlencode($rel);
+        $base = self::ehModelo($rel) ? "$this->dir/backups" : $this->pasta('backups');
+        return $base . '/' . rawurlencode($rel);
     }
 
     /** Guarda a versão atual do arquivo antes de sobrescrever. */

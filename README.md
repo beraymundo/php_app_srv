@@ -2,22 +2,43 @@
 
 Abra em `http://localhost/php_app_srv/`. É PHP puro e roda no XAMPP sem nenhuma extensão extra.
 
+## Usuários
+
+No primeiro acesso a página pede para criar o administrador; os dados que já existiam passam a ser dele.
+O administrador cria as outras contas em **usuários** (no topo), redefine senhas e cuida de categorias,
+ferramentas, modelos e do backup geral. Usuários comuns usam as ferramentas com os próprios dados.
+
+- `usuarios/usuarios.json`: contas (senhas guardadas só como hash).
+- `usuarios/<login>/ferramentas/<categoria>/<ferramenta>/`: documentos, saídas, dados, versões e lixeira de cada pessoa.
+- `ferramentas/<categoria>/<ferramenta>/modelos/`: modelos, compartilhados por todos.
+
+Dentro de uma ferramenta, `$f->caminho('modelos/...')` aponta para a pasta compartilhada e qualquer outra pasta
+(`dados/`, `documentos/`, `saidas/`...) aponta para a pasta do usuário logado. As ferramentas não precisam saber disso.
+
+## Backup
+
+Em **backup** (rodapé, só administrador): baixar um .zip com tudo, gravar uma cópia no servidor ou restaurar.
+Uma cópia automática é feita a cada 30 dias em `backups_gerais/` (configurável em `config.php`).
+
 ## Organização
 
 ```
 index.php            menu: categorias › ferramentas › ferramenta
-config.php           senha opcional, regras de backup e lixeira
+config.php           regras de backup e lixeira
 lib/                 núcleo (zip, editor docx/xlsx, gerador docx, layout)
 assets/              css e js (editor visual no navegador)
 ferramentas/
   <categoria>/_categoria.json          nome, descrição, ordem
   <categoria>/<ferramenta>/ferramenta.json
-      modelos/     arquivos-base (o "Novo documento" faz uma cópia daqui)
+      modelos/     arquivos-base compartilhados (o "Novo documento" faz uma cópia daqui)
+      backups/     versões anteriores dos modelos
+usuarios/<login>/ferramentas/<categoria>/<ferramenta>/
       documentos/  arquivos de trabalho
       saidas/      o que os programas geram
-      dados/       dados internos (ex.: lista de casais)
+      dados/       dados internos (listas, cadastros, finanças)
       backups/     versões anteriores, guardadas a cada salvamento
       lixeira/     arquivos excluídos (restauráveis)
+backups_gerais/      backups automáticos (zip)
 old/                 o jeito antigo (scripts Python), intocado
 ```
 
