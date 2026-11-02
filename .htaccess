@@ -4,4 +4,4 @@ Options -Indexes
 </Files>
 
 # Dados das pessoas e backups nunca são servidos diretamente (só pelo index.php)
-RedirectMatch 403 (?i)/(usuarios|backups_gerais|old)(/|$)
+RedirectMatch 403 (?i)/(usuarios|backups_gerais|old|bin|testes)(/|$)

@@ -56,6 +56,8 @@ inicio_ferramenta($f);
 <script>
 (function () {
   const est = Object.assign({ contas: [], meses: {} }, <?= json_js($estado ?: new stdClass()) ?>);
+  if (Array.isArray(est.meses)) est.meses = {};
+  for (const k of Object.keys(est.meses)) if (Array.isArray(est.meses[k])) est.meses[k] = {};
   const $ = (s) => document.querySelector(s);
   const salvar = App.autoSalvar(<?= json_js($f->url(['a' => 'salvar_estado'])) ?>, () => est, $('#st'));
   const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];

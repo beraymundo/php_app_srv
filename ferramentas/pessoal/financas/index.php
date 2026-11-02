@@ -126,6 +126,8 @@ inicio_ferramenta($f);
   const CATS = ['Moradia', 'Contas da casa', 'Alimentação', 'Mercado', 'Transporte', 'Saúde', 'Educação', 'Lazer', 'Assinaturas', 'Compras', 'Igreja / doações', 'Outros', 'Salário', 'Renda extra'];
   const est = Object.assign({ contas: [], fixos: [], categorias: CATS.slice(), meses: {} }, <?= json_js($estado ?: new stdClass()) ?>);
   if (Array.isArray(est.meses)) est.meses = {};
+  // dicionários vazios podem ter sido gravados como lista; voltam a ser objetos
+  for (const dm of Object.values(est.meses)) { if (Array.isArray(dm.fixos)) dm.fixos = {}; dm.lanc = dm.lanc || []; dm.saldos = dm.saldos || []; }
   const $ = (s) => document.querySelector(s);
   const salvar = App.autoSalvar(<?= json_js($f->url(['a' => 'salvar_estado'])) ?>, () => est, $('#st'));
   const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];

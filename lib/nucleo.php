@@ -133,28 +133,126 @@ function gravar_json(string $arq, array $dados): void
 }
 
 /**
- * Estado em JSON de uma ferramenta (listas, cadastros...). Atende o salvamento automático
- * (POST JSON em ?a=salvar_estado) e devolve o estado atual. Guarda uma cópia de segurança
- * a cada 6 horas no histórico de versões.
+ * Estado em JSON de uma ferramenta (listas, cadastros, finanças...).
+ *
+ * - A página recebe o estado com um número de versão "_v" e grava pelo salvamento automático
+ *   (POST JSON em ?a=salvar_estado). Se o arquivo mudou desde que a página abriu (outra aba, o bot
+ *   do Telegram), o servidor recusa com 409 e a página recarrega os dados em vez de apagar a mudança.
+ * - ?a=versao_estado devolve só a versão atual (a página confere ao voltar para a aba).
+ * - O JSON da página é gravado preservando objetos vazios ({} continua {}, não vira []).
+ * - Uma cópia de segurança vai para o histórico de versões a cada 6 horas.
  */
 function estado_ferramenta(Ferramenta $f, string $a, string $rel = 'dados/estado.json'): array
 {
+    if ($a === 'versao_estado') {
+        json_saida(['_v' => (int)(estado_ler($f, $rel)['_v'] ?? 0)]);
+    }
     if ($a === 'salvar_estado' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-        $in = json_decode((string)file_get_contents('php://input'), true);
-        if (!is_array($in)) {
+        $in = json_decode((string)file_get_contents('php://input')); // objetos continuam objetos
+        if (!$in instanceof stdClass) {
             json_saida(['erro' => 'Dados inválidos.'], 400);
         }
-        $p = $f->caminho($rel);
-        if (is_file($p)) {
-            $vs = $f->versoes($rel);
-            if (!$vs || $vs[0]['mtime'] < time() - 6 * 3600) {
-                $f->backup($rel);
+        $resultado = estado_trancado($f, $rel, function (string $p) use ($f, $rel, $in) {
+            $atual = is_file($p) ? (int)(json_decode((string)file_get_contents($p), true)['_v'] ?? 0) : 0;
+            $veio = (int)($in->_v ?? 0);
+            if ($veio !== $atual) {
+                return ['conflito' => true, '_v' => $atual];
             }
+            $in->_v = $atual + 1;
+            estado_backup_periodico($f, $rel);
+            estado_gravar_arquivo($p, json_encode($in, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+            return ['_v' => $in->_v];
+        });
+        if (!empty($resultado['conflito'])) {
+            json_saida(['erro' => 'Os dados foram alterados em outro lugar.', 'conflito' => true, '_v' => $resultado['_v']], 409);
         }
-        gravar_json($p, $in);
-        json_saida(['ok' => true, 'hora' => date('H:i:s')]);
+        json_saida(['ok' => true, 'hora' => date('H:i:s'), '_v' => $resultado['_v']]);
     }
+    return estado_ler($f, $rel);
+}
+
+function estado_ler(Ferramenta $f, string $rel = 'dados/estado.json'): array
+{
     return ler_json($f->caminho($rel));
+}
+
+/**
+ * Altera o estado pelo servidor (usado pelo bot): lê, aplica $alterar, aumenta a versão e grava,
+ * tudo com o arquivo trancado. $mapas lista caminhos que são "dicionários" no JSON e por isso
+ * precisam continuar objetos mesmo vazios (ex.: ['meses', 'meses.*.fixos']).
+ */
+function estado_alterar(Ferramenta $f, callable $alterar, array $mapas = [], string $rel = 'dados/estado.json'): array
+{
+    return estado_trancado($f, $rel, function (string $p) use ($f, $rel, $alterar, $mapas) {
+        $e = is_file($p) ? (json_decode((string)file_get_contents($p), true) ?: []) : [];
+        $e = $alterar($e);
+        $e['_v'] = (int)($e['_v'] ?? 0) + 1;
+        estado_backup_periodico($f, $rel);
+        $obj = $e;
+        foreach ($mapas as $caminho) {
+            forcar_objeto($obj, explode('.', $caminho));
+        }
+        estado_gravar_arquivo($p, json_encode($obj, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        return $e;
+    });
+}
+
+/** Converte em objeto (stdClass) o valor no caminho, para "{}" não virar "[]" no JSON. */
+function forcar_objeto(mixed &$no, array $partes): void
+{
+    if (!$partes) {
+        $no = (object)$no;
+        return;
+    }
+    $chave = array_shift($partes);
+    if (!is_array($no)) {
+        return;
+    }
+    if ($chave === '*') {
+        foreach ($no as &$filho) {
+            forcar_objeto($filho, $partes);
+        }
+        unset($filho);
+    } elseif (array_key_exists($chave, $no)) {
+        forcar_objeto($no[$chave], $partes);
+    }
+}
+
+/** Executa $fn($caminhoDoArquivo) com uma trava exclusiva, para duas gravações não se misturarem. */
+function estado_trancado(Ferramenta $f, string $rel, callable $fn): mixed
+{
+    $p = $f->caminho($rel);
+    if (!is_dir(dirname($p))) {
+        mkdir(dirname($p), 0777, true);
+    }
+    $trava = fopen("$p.lock", 'c');
+    flock($trava, LOCK_EX);
+    try {
+        return $fn($p);
+    } finally {
+        flock($trava, LOCK_UN);
+        fclose($trava);
+    }
+}
+
+function estado_backup_periodico(Ferramenta $f, string $rel): void
+{
+    if (is_file($f->caminho($rel))) {
+        $vs = $f->versoes($rel);
+        if (!$vs || $vs[0]['mtime'] < time() - 6 * 3600) {
+            $f->backup($rel);
+        }
+    }
+}
+
+function estado_gravar_arquivo(string $p, string $json): void
+{
+    $tmp = "$p.tmp" . bin2hex(random_bytes(3));
+    file_put_contents($tmp, $json);
+    if (!@rename($tmp, $p)) {
+        @unlink($tmp);
+        throw new RuntimeException('Não foi possível gravar os dados.');
+    }
 }
 
 function soffice(): ?string
@@ -280,7 +378,7 @@ final class Ferramenta
         $dir = $this->caminho($sub);
         $out = [];
         foreach (is_dir($dir) ? scandir($dir) : [] as $n) {
-            if ($n[0] === '.' || $n === 'index.json') {
+            if ($n[0] === '.' || $n === 'index.json' || str_ends_with($n, '.lock')) {
                 continue;
             }
             $p = "$dir/$n";

@@ -14,6 +14,7 @@ require __DIR__ . '/lib/layout.php';
 require __DIR__ . '/lib/documentos.php';
 require __DIR__ . '/lib/backup.php';
 require __DIR__ . '/lib/painel.php';
+require __DIR__ . '/lib/pagina_telegram.php';
 
 // Sessão longa (30 dias) para não pedir senha toda hora no mesmo aparelho.
 ini_set('session.gc_maxlifetime', (string)(30 * 86400));
@@ -61,6 +62,8 @@ try {
         pagina_usuarios($a);
     } elseif ($c === '' && $a === 'conta') {
         pagina_conta();
+    } elseif ($c === '' && str_starts_with($a, 'telegram')) {
+        pagina_telegram($a);
     } elseif ($c === '') {
         pagina_inicio();
     } elseif ($t === '') {
@@ -181,7 +184,7 @@ function pagina_conta(): void
     cabecalho('Minha conta', [['Minha conta', null]]);
     ?>
 <div class="titulo-pagina"><div><h1><?= h($u['nome']) ?></h1><p class="mudo">usuário <code><?= h($u['login']) ?></code> · <?= $u['admin'] ? 'administrador' : 'usuário' ?></p></div></div>
-<div class="barra-voltar"><a class="btn" href="index.php">← Início</a><a class="btn btn-leve" href="index.php?a=sair">Sair</a></div>
+<div class="barra-voltar"><a class="btn" href="index.php">← Início</a><a class="btn" href="index.php?a=telegram">Telegram</a><a class="btn btn-leve" href="index.php?a=sair">Sair</a></div>
 <form method="post" class="cartao form-grade" style="max-width:640px">
   <h2 class="largo">Trocar senha</h2>
   <label class="largo">Nome <input name="nome" value="<?= h($u['nome']) ?>"></label>
@@ -243,7 +246,7 @@ function pagina_usuarios(string $a): void
     cabecalho('Usuários', [['Usuários', null]]);
     ?>
 <div class="titulo-pagina"><div><h1>Usuários</h1><p class="mudo">Cada pessoa tem os próprios documentos, listas e finanças. Os modelos são de todos.</p></div></div>
-<div class="barra-voltar"><a class="btn" href="index.php">← Início</a><a class="btn btn-leve" href="index.php?a=backup">Backup geral</a></div>
+<div class="barra-voltar"><a class="btn" href="index.php">← Início</a><a class="btn btn-leve" href="index.php?a=backup">Backup geral</a><a class="btn btn-leve" href="index.php?a=telegram">Bot do Telegram</a></div>
 <section class="cartao">
   <table class="dados">
     <thead><tr><th>usuário</th><th>nome</th><th>acesso</th><th class="num nao-celular">dados</th><th></th></tr></thead>

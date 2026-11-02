@@ -270,14 +270,36 @@ Object.assign(window.App, {
   /**
    * Salvamento automático de um estado JSON: chame salvar() a cada mudança;
    * grava depois de uma pausa e mostra o status no elemento indicado.
+   * Usa a versão "_v" do estado: se os dados mudaram em outro lugar (outra aba, bot do Telegram),
+   * recarrega a página em vez de sobrescrever. Ao voltar para a aba, confere a versão e recarrega se mudou.
    */
   autoSalvar(url, obterDados, statusEl, espera = 700) {
-    let t = null;
+    let t = null, pendente = false;
     const st = (txt) => { if (statusEl) statusEl.textContent = txt; };
+    const recarregar = (msg) => { st(msg); setTimeout(() => location.reload(), 700); };
     const gravar = async () => {
-      try { const j = await App.api(url, obterDados()); st('salvo ' + (j.hora || '')); } catch (e) { st('erro: ' + e.message); }
+      const dados = obterDados();
+      try {
+        const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(dados) });
+        const j = await r.json().catch(() => ({ erro: 'Resposta inválida do servidor.' }));
+        if (r.status === 409 && j.conflito) { recarregar('os dados mudaram em outro lugar; recarregando...'); return; }
+        if (!r.ok || j.erro) throw new Error(j.erro || 'Erro ' + r.status);
+        dados._v = j._v;
+        pendente = false;
+        st('salvo ' + (j.hora || ''));
+      } catch (e) { st('erro: ' + e.message); }
     };
-    return () => { st('* salvando...'); clearTimeout(t); t = setTimeout(gravar, espera); };
+    const urlVersao = url.replace('a=salvar_estado', 'a=versao_estado');
+    const conferir = async () => {
+      if (document.visibilityState !== 'visible' || pendente) return;
+      try {
+        const j = await (await fetch(urlVersao, { headers: { Accept: 'application/json' } })).json();
+        if ((j._v || 0) !== (obterDados()._v || 0)) recarregar('dados atualizados em outro lugar; recarregando...');
+      } catch (e) { /* sem conexão: tenta na próxima */ }
+    };
+    document.addEventListener('visibilitychange', conferir);
+    window.addEventListener('focus', conferir);
+    return () => { pendente = true; st('* salvando...'); clearTimeout(t); t = setTimeout(gravar, espera); };
   },
   /** Formata número como moeda brasileira. */
   reais(n) { return (Number(n) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); },

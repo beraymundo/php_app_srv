@@ -10,7 +10,9 @@
  * Usuário comum: usa as ferramentas com os próprios dados.
  */
 
-const DIR_USUARIOS = RAIZ . '/usuarios';
+if (!defined('DIR_USUARIOS')) {
+    define('DIR_USUARIOS', RAIZ . '/usuarios'); // os testes apontam para outra pasta
+}
 
 function usuarios(?array $trocar = null): array
 {
@@ -39,10 +41,23 @@ function login_valido(string $login): bool
     return (bool)preg_match('/^[a-z0-9][a-z0-9._-]{1,30}$/', $login);
 }
 
-/** Login de quem está usando agora (sessão), ou '' se ninguém entrou. */
+/**
+ * Fora do navegador (o bot do Telegram), define em nome de quem as ações são feitas.
+ * Passe '' para voltar a usar a sessão.
+ */
+function usuario_forcar(?string $login = null): string
+{
+    static $forcado = '';
+    if ($login !== null) {
+        $forcado = $login;
+    }
+    return $forcado;
+}
+
+/** Login de quem está usando agora (sessão ou bot), ou '' se ninguém entrou. */
 function usuario_login(): string
 {
-    $l = (string)($_SESSION['usuario'] ?? '');
+    $l = usuario_forcar() ?: (string)($_SESSION['usuario'] ?? '');
     return $l !== '' && isset(usuarios()[$l]) ? $l : '';
 }
 

@@ -15,6 +15,23 @@ ferramentas, modelos e do backup geral. Usuários comuns usam as ferramentas com
 Dentro de uma ferramenta, `$f->caminho('modelos/...')` aponta para a pasta compartilhada e qualquer outra pasta
 (`dados/`, `documentos/`, `saidas/`...) aponta para a pasta do usuário logado. As ferramentas não precisam saber disso.
 
+## Bot do Telegram
+
+Registra gastos, entradas, contas fixas pagas e aniversários por mensagem, nos dados de quem vinculou o Telegram.
+As frases são entendidas por regras em português (`lib/bot/interpretar.php`), sem IA e sem custo; antes de gravar o
+bot sempre pede confirmação.
+
+1. Crie um bot no @BotFather e cole o token em **minha conta → Telegram** (administrador).
+2. Dê dois cliques em `bin/instalar_bot_telegram.bat`: cria a tarefa agendada do Windows que mantém o bot ligado.
+3. Em **minha conta → Telegram**, toque em **Vincular meu Telegram**.
+
+O programa (`bin/telegram_bot.php`) busca as mensagens por long polling: não precisa de endereço público.
+Configuração e vínculos em `usuarios/telegram.json`; registro em `usuarios/telegram.log`.
+Testes: `php testes/interpretar_teste.php` e `php testes/bot_teste.php`.
+
+Os dados das ferramentas têm versão (`_v`): se o bot gravar enquanto a página está aberta, a página recarrega em vez
+de sobrescrever. Ações feitas pelo servidor ficam em `lib/acoes.php`.
+
 ## Backup
 
 Em **backup** (rodapé, só administrador): baixar um .zip com tudo, gravar uma cópia no servidor ou restaurar.
