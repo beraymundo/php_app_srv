@@ -17,7 +17,7 @@ Dentro de uma ferramenta, `$f->caminho('modelos/...')` aponta para a pasta compa
 
 ## Bot do Telegram
 
-Registra gastos, entradas, contas fixas pagas e aniversários por mensagem, nos dados de quem vinculou o Telegram.
+Registra gastos, entradas, contas fixas pagas, novas contas fixas e aniversários por mensagem, nos dados de quem vinculou o Telegram.
 As frases são entendidas por regras em português (`lib/bot/interpretar.php`), sem IA e sem custo; antes de gravar o
 bot sempre pede confirmação.
 

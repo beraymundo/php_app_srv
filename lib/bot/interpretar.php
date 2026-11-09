@@ -6,9 +6,10 @@
  *   "brinquei num futebol de sabão por 12 reais" -> gasto 12,00 "Futebol de sabão" (Lazer)
  *   "recebi 3000 salário"                        -> entrada (ou o fixo "Salário", se existir)
  *   "paguei a internet 99,90"                    -> marca o fixo "Internet" como pago
+ *   "novo fixo internet 99,90 dia 10"            -> cadastra o gasto fixo "Internet" (todo dia 10)
  *   "aniversário do Carlos 02/07/1990"           -> aniversário
  *
- * Devolve ['tipo' => gasto|entrada|fixo|aniversario|desconhecido, ...campos, 'faltando' => [...]].
+ * Devolve ['tipo' => gasto|entrada|fixo|novofixo|aniversario|desconhecido, ...campos, 'faltando' => [...]].
  */
 
 const BOT_VERBOS_GASTO = ['gastei', 'comprei', 'paguei', 'peguei', 'usei', 'brinquei', 'gasto', 'compra', 'comprado', 'paguei', 'pago', 'custou', 'torrei', 'investi'];
@@ -34,6 +35,13 @@ const BOT_CATEGORIAS = [
     'Educação' => '/\b(livro|livros|curso|faculdade|escola|xerox|copia|apostila|material|mensalidade|ifes)\b/',
     'Igreja / doações' => '/\b(dizimo|oferta|doacao|igreja|missa|paroquia|rifa)\b/',
 ];
+
+/** Frase que cadastra um fixo novo (texto sem acentos): "novo fixo ...", "gasto fixo ...", "... todo dia 10", "... por mês". */
+const BOT_RE_NOVO_FIXO = '/\b((nov[oa]|cadastr\w*|cri[ae]r?|adicion\w*)( (um|uma|o|a))?( (gasto|despesa|conta|entrada|receita))? fix[oa]|(gasto|despesa|entrada|receita) fix[oa]|todo mes|todos os meses|mensal(mente)?|por mes|ao mes|todo dia \d{1,2})\b/';
+/** Palavras tiradas da descrição de um fixo novo. */
+const BOT_PALAVRAS_NOVO_FIXO = ['novo', 'nova', 'fixo', 'fixa', 'gasto', 'despesa', 'entrada', 'receita', 'cadastra', 'cadastrar', 'cadastre', 'cadastro',
+    'cria', 'criar', 'crie', 'adiciona', 'adicionar', 'adicione', 'todo', 'todos', 'mes', 'meses', 'mensal', 'mensalmente', 'cada', 'vence', 'vencimento',
+    'pago', 'pagar', 'pagamos', 'recebo', 'receber', 'ganho'];
 
 /** "1.234,56" / "12,5" / "12.50" / "1200" -> float */
 function bot_numero(string $s): ?float
@@ -194,6 +202,58 @@ function bot_achar_fixo(string $n, array $fixosDoMes, string $tipo): ?array
     return $melhor;
 }
 
+/**
+ * Cadastro de um fixo: descrição, valor, dia do vencimento, categoria e conta.
+ * Devolve ['tipo' => 'novofixo', 'fixotipo' => despesa|receita, desc, valor, dia, cat, conta, faltando].
+ */
+function bot_interpretar_novo_fixo(string $original, string $n, array $ctx): array
+{
+    $fixotipo = preg_match('/\b(entrada|receita|recebo|receber|ganho|salario)\b/', $n) ? 'receita' : 'despesa';
+    $dia = null;
+    if (preg_match('/\b(?:todo |no |vence (?:no |em |dia )?)?dia (\d{1,2})\b|\bvence (?:no |em )?(\d{1,2})\b/', $n, $m)) {
+        $d = (int)($m[1] !== '' ? $m[1] : $m[2]);
+        if ($d >= 1 && $d <= 31) {
+            $dia = $d;
+            $n = str_replace($m[0], ' ', $n);
+        }
+    }
+    $valor = bot_extrair_valor($n);
+    $conta = bot_achar_conta($n, $ctx['contas'] ?? []);
+
+    $palavrasO = preg_split('/\s+/u', $original);
+    $restante = preg_split('/\s+/', trim(preg_replace('/\s+/', ' ', $n)));
+    $contaN = $conta ? preg_split('/\s+/', sem_acentos($conta['nome'])) : [];
+    $remover = [];
+    foreach ($palavrasO as $i => $p) {
+        $w = sem_acentos(trim($p, '.,;:!?()'));
+        if (in_array($w, BOT_PALAVRAS_NOVO_FIXO, true) || in_array($w, BOT_PALAVRAS_DINHEIRO, true) || in_array($w, BOT_PALAVRAS_PAGAMENTO, true)
+            || in_array($w, $contaN, true) || (preg_match('/^(r\$)?\d/', $w) && !in_array($w, $restante, true)) || preg_match('/^(r\$|rs)$/', $w) || $w === 'mil') {
+            $remover[] = $i;
+        }
+        if ($w === 'dia' && isset($palavrasO[$i + 1]) && preg_match('/^\d{1,2}$/', trim($palavrasO[$i + 1], '.,;:!?'))) {
+            $remover[] = $i;
+            $remover[] = $i + 1;
+        }
+    }
+    $desc = bot_descricao($palavrasO, $remover);
+    $cat = $desc !== '' ? bot_categoria($desc, $fixotipo, $ctx['categorias'] ?? FIN_CATEGORIAS) : null;
+
+    $r = ['tipo' => 'novofixo', 'fixotipo' => $fixotipo, 'desc' => $desc, 'valor' => $valor, 'dia' => $dia, 'cat' => $cat, 'conta' => $conta['id'] ?? '', 'faltando' => []];
+    if ($desc === '') {
+        $r['faltando'][] = 'desc';
+    }
+    if ($valor === null || $valor <= 0) {
+        $r['faltando'][] = 'valor';
+    }
+    if (!$dia) {
+        $r['faltando'][] = 'dia';
+    }
+    if (!$cat) {
+        $r['faltando'][] = 'cat';
+    }
+    return $r;
+}
+
 function bot_achar_conta(string $n, array $contas): ?array
 {
     foreach ($contas as $c) {
@@ -216,7 +276,7 @@ function bot_achar_conta(string $n, array $contas): ?array
 
 /**
  * @param array $ctx ['contas', 'categorias', 'fixos_mes' => fin_fixos_do_mes(), 'historico' => callable(desc): ?array]
- * @param string|null $forcar 'gasto'|'entrada'|'fixo'|'aniversario' quando o tipo já foi escolhido no menu
+ * @param string|null $forcar 'gasto'|'entrada'|'fixo'|'novofixo'|'aniversario' quando o tipo já foi escolhido no menu
  */
 function bot_interpretar(string $texto, array $ctx, ?string $forcar = null, ?DateTimeImmutable $hoje = null): array
 {
@@ -256,6 +316,11 @@ function bot_interpretar(string $texto, array $ctx, ?string $forcar = null, ?Dat
             $r['faltando'][] = 'data';
         }
         return $r;
+    }
+
+    // ---------------------------------------------------------------- novo fixo: "novo fixo internet 99,90 dia 10"
+    if ($forcar === 'novofixo' || (!$forcar && preg_match(BOT_RE_NOVO_FIXO, $n) && !preg_match('/\b(paguei|recebi|caiu|entrou)\b/', $n))) {
+        return bot_interpretar_novo_fixo($original, $n, $ctx);
     }
 
     // ---------------------------------------------------------------- dinheiro

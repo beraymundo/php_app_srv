@@ -50,6 +50,13 @@ $casos = [
     ['niver da ana paula 15/03', 'aniversario', ['nome' => 'Ana Paula', 'dia' => 15, 'mes' => 3, 'ano' => null]],
     ['aniversário da tia Maria 8 de setembro', 'aniversario', ['nome' => 'Tia Maria', 'dia' => 8, 'mes' => 9]],
     ['aniversário do João', 'aniversario', ['nome' => 'João', 'faltando' => ['data']]],
+    ['novo fixo internet 99,90 dia 10', 'novofixo', ['fixotipo' => 'despesa', 'desc' => 'Internet', 'valor' => 99.9, 'dia' => 10, 'cat' => 'Contas da casa', 'faltando' => []]],
+    ['netflix 55,90 todo dia 15', 'novofixo', ['desc' => 'Netflix', 'valor' => 55.9, 'dia' => 15, 'cat' => 'Assinaturas']],
+    ['entrada fixa salário 3000 dia 5', 'novofixo', ['fixotipo' => 'receita', 'desc' => 'Salário', 'valor' => 3000.0, 'dia' => 5, 'cat' => 'Salário']],
+    ['cadastra um gasto fixo de aluguel 1.500 vence dia 5 no nubank', 'novofixo', ['desc' => 'Aluguel', 'valor' => 1500.0, 'dia' => 5, 'cat' => 'Moradia', 'conta' => 'nu']],
+    ['aluguel 1500 todo mês dia 8', 'novofixo', ['desc' => 'Aluguel', 'valor' => 1500.0, 'dia' => 8]],
+    ['nova conta fixa academia 90 por mês', 'novofixo', ['desc' => 'Academia', 'valor' => 90.0, 'dia' => null, 'cat' => 'Saúde', 'faltando' => ['dia']]],
+    ['novo fixo', 'novofixo', ['faltando' => ['desc', 'valor', 'dia', 'cat']]],
     ['bom dia', 'desconhecido', []],
 ];
 

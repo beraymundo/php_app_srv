@@ -67,6 +67,35 @@ function fin_remover_lancamento(string $k, string $id): void
     }, FIN_MAPAS);
 }
 
+/**
+ * Cadastra um gasto ou entrada fixo (mesmo formato da página), valendo a partir deste mês.
+ * $f: tipo (despesa|receita), desc, valor, dia, cat, conta. Devolve o id.
+ */
+function fin_criar_fixo(array $f): string
+{
+    $fx = [
+        'id' => novo_id(), 'desc' => $f['desc'], 'valor' => round((float)$f['valor'], 2), 'dia' => max(1, min(31, (int)$f['dia'])),
+        'tipo' => $f['tipo'], 'cat' => $f['cat'] ?? 'Outros', 'conta' => $f['conta'] ?? '', 'desde' => date('Y-m'), 'ate' => null,
+    ];
+    estado_alterar(fin(), function (array $e) use ($fx) {
+        $e['fixos'][] = $fx;
+        return $e;
+    }, FIN_MAPAS);
+    return $fx['id'];
+}
+
+/** Exclui um fixo de todos os meses (para desfazer um cadastro). */
+function fin_remover_fixo(string $id): void
+{
+    estado_alterar(fin(), function (array $e) use ($id) {
+        $e['fixos'] = array_values(array_filter($e['fixos'] ?? [], fn($x) => $x['id'] !== $id));
+        foreach ($e['meses'] ?? [] as $k => $dm) {
+            unset($e['meses'][$k]['fixos'][$id]);
+        }
+        return $e;
+    }, FIN_MAPAS);
+}
+
 /** Fixos que valem no mês $k, com valor do mês e se já foram pagos. */
 function fin_fixos_do_mes(string $k, ?array $e = null): array
 {

@@ -191,6 +191,38 @@ $msg('8 de setembro');
 confere('data por extenso', str_contains($api->texto(), 'João') && str_contains($api->texto(), '08/09'), $api->texto());
 $clicar('ok');
 
+// ---- cadastrar conta fixa
+$msg('novo fixo academia 90');
+confere('novo fixo pede o dia', str_contains($api->texto(), 'Em que dia do mês vence'), $api->texto());
+$msg('12');
+confere('confirma novo fixo', str_contains($api->texto(), 'Nova conta fixa') && str_contains($api->texto(), 'Academia · todo dia 12') && str_contains($api->texto(), 'R$ 90,00') && str_contains($api->texto(), 'Saúde'), $api->texto());
+$clicar('corrigir');
+$clicar('campo:valor');
+$msg('99,50');
+confere('valor do novo fixo corrigido', str_contains($api->texto(), 'R$ 99,50'), $api->texto());
+$clicar('ok');
+usuario_forcar('bernardo');
+$novo = current(array_filter(fin_estado()['fixos'], fn($fx) => $fx['desc'] === 'Academia'));
+usuario_forcar('');
+confere('novo fixo gravado como na página', $novo && $novo['valor'] == 99.5 && $novo['dia'] === 12 && $novo['tipo'] === 'despesa' && $novo['cat'] === 'Saúde' && $novo['desde'] === $k && $novo['ate'] === null, json_encode($novo, JSON_UNESCAPED_UNICODE));
+$msg('/fixos');
+confere('novo fixo aparece para pagar', str_contains(json_encode($api->ultima()[1]['reply_markup'] ?? [], JSON_UNESCAPED_UNICODE), 'Academia'), $api->texto());
+$clicar('cancelar');
+$msg('/desfazer');
+usuario_forcar('bernardo');
+$restou = array_filter(fin_estado()['fixos'], fn($fx) => $fx['desc'] === 'Academia');
+usuario_forcar('');
+confere('desfazer remove o novo fixo', !$restou && str_contains($api->texto(), 'Desfeito'), $api->texto());
+
+$msg('/menu');
+$clicar('menu:novofixo');
+$msg('internet 120 dia 20');
+confere('avisa fixo com mesmo nome', str_contains($api->texto(), 'já existe a conta fixa "Internet"'), $api->texto());
+$clicar('corrigir');
+$clicar('ftipo:receita');
+confere('troca para entrada fixa', str_contains($api->texto(), 'Nova entrada fixa'), $api->texto());
+$clicar('cancelar');
+
 // ---- resumo
 $msg('/resumo');
 confere('resumo do mês', str_contains($api->texto(), 'Entradas: R$ 3.150,00') && str_contains($api->texto(), 'Gastos:'), $api->texto());

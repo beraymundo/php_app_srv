@@ -98,7 +98,7 @@ final class BotCentral
             'aniversarios' => $this->proximosAniversarios(),
             'desfazer' => $this->desfazer(),
             'cancelar' => $this->cancelar(),
-            'gasto', 'entrada', 'aniversario' => $this->pedirFrase($cmd),
+            'gasto', 'entrada', 'aniversario', 'novofixo' => $this->pedirFrase($cmd),
             default => $this->enviar('Comando desconhecido. Mande /ajuda para ver o que eu sei fazer.'),
         };
     }
@@ -109,17 +109,19 @@ final class BotCentral
             . "<b>Gastos</b>\n<code>gastei 45 mercado</code>\n<code>brinquei num futebol por 12 reais</code>\n<code>paguei 35 na farmácia no nubank ontem</code>\n\n"
             . "<b>Entradas</b>\n<code>recebi 200 de um freela</code>\n\n"
             . "<b>Contas fixas</b>\n<code>paguei a internet</code>\n<code>paguei a luz 187,40</code>\n<code>recebi o salário</code>\n\n"
+            . "<b>Cadastrar conta fixa</b>\n<code>novo fixo internet 99,90 dia 10</code>\n<code>netflix 55,90 todo dia 15</code>\n<code>entrada fixa salário 3000 dia 5</code>\n\n"
             . "<b>Aniversários</b>\n<code>aniversário da Ana 15/03</code>\n<code>niver do Carlos 02/07/1990</code>\n\n"
             . "Antes de gravar eu sempre peço confirmação.\n"
-            . "/menu opções em botões · /resumo o mês · /fixos contas a pagar · /aniversarios próximos · /desfazer último registro";
+            . "/menu opções em botões · /resumo o mês · /fixos contas a pagar · /novofixo cadastrar conta fixa · /aniversarios próximos · /desfazer último registro";
     }
 
     private function menu(): void
     {
         $this->enviar('O que você quer fazer?', [
             [['Gasto', 'menu:gasto'], ['Entrada', 'menu:entrada']],
-            [['Pagar conta fixa', 'menu:fixo'], ['Aniversário', 'menu:aniversario']],
-            [['Resumo do mês', 'menu:resumo'], ['Próximos aniversários', 'menu:aniversarios']],
+            [['Pagar conta fixa', 'menu:fixo'], ['Nova conta fixa', 'menu:novofixo']],
+            [['Aniversário', 'menu:aniversario'], ['Próximos aniversários', 'menu:aniversarios']],
+            [['Resumo do mês', 'menu:resumo']],
             [['Desfazer último', 'menu:desfazer']],
         ]);
     }
@@ -132,8 +134,10 @@ final class BotCentral
         }
         $this->conv['pendente'] = null;
         $this->conv['aguardando'] = "frase:$tipo";
-        $exemplo = ['gasto' => 'Ex.: <code>25 lanche</code>', 'entrada' => 'Ex.: <code>150 venda do bolo</code>', 'aniversario' => 'Ex.: <code>Ana Paula 15/03</code>'][$tipo];
-        $this->enviar(['gasto' => 'Qual foi o gasto?', 'entrada' => 'Qual foi a entrada?', 'aniversario' => 'De quem é o aniversário e quando?'][$tipo] . "\n$exemplo");
+        $exemplo = ['gasto' => 'Ex.: <code>25 lanche</code>', 'entrada' => 'Ex.: <code>150 venda do bolo</code>', 'aniversario' => 'Ex.: <code>Ana Paula 15/03</code>',
+            'novofixo' => "Ex.: <code>internet 99,90 dia 10</code>\nPara entrada: <code>entrada salário 3000 dia 5</code>"][$tipo];
+        $this->enviar(['gasto' => 'Qual foi o gasto?', 'entrada' => 'Qual foi a entrada?', 'aniversario' => 'De quem é o aniversário e quando?',
+            'novofixo' => 'Qual a conta fixa? (descrição, valor e dia do vencimento)'][$tipo] . "\n$exemplo");
     }
 
     private function cancelar(): void
@@ -178,8 +182,8 @@ final class BotCentral
             $this->conv['pendente'] = ['tipo' => 'desconhecido', 'texto' => $texto];
             $this->enviar("Não entendi. Isso é:", [
                 [['Gasto', 'tipo:gasto'], ['Entrada', 'tipo:entrada']],
-                [['Conta fixa paga', 'tipo:fixo'], ['Aniversário', 'tipo:aniversario']],
-                [['Nada, cancelar', 'cancelar']],
+                [['Conta fixa paga', 'tipo:fixo'], ['Nova conta fixa', 'tipo:novofixo']],
+                [['Aniversário', 'tipo:aniversario'], ['Nada, cancelar', 'cancelar']],
             ]);
             return;
         }
@@ -208,7 +212,8 @@ final class BotCentral
                 $p['desc'] = mb_strtoupper(mb_substr(trim($texto), 0, 1)) . mb_substr(trim($texto), 1);
                 if (empty($p['cat'])) {
                     $ctx = $this->contexto();
-                    $p['cat'] = ($ctx['historico'])($p['desc'])['cat'] ?? bot_categoria($p['desc'], $p['tipo'] === 'entrada' ? 'receita' : 'despesa', $ctx['categorias']);
+                    $tipoDin = $p['tipo'] === 'novofixo' ? $p['fixotipo'] : ($p['tipo'] === 'entrada' ? 'receita' : 'despesa');
+                    $p['cat'] = ($p['tipo'] === 'novofixo' ? null : (($ctx['historico'])($p['desc'])['cat'] ?? null)) ?? bot_categoria($p['desc'], $tipoDin, $ctx['categorias']);
                 }
                 break;
             case 'data':
@@ -231,6 +236,16 @@ final class BotCentral
             case 'nome':
                 $p['nome'] = trim($texto);
                 break;
+            case 'dia':
+                if (!preg_match('/^\s*(?:todo |no )?(?:dia )?(\d{1,2})\s*$/', sem_acentos($texto), $m) || (int)$m[1] < 1 || (int)$m[1] > 31) {
+                    if (preg_match('/[a-z]{4,}/', sem_acentos($texto)) && !preg_match('/\bdia\b/', sem_acentos($texto))) {
+                        return false; // veio uma frase inteira: trata como novo registro
+                    }
+                    $this->enviar('Mande só o dia do mês, de 1 a 31. Ex.: <code>10</code>');
+                    return true;
+                }
+                $p['dia'] = (int)$m[1];
+                break;
             default:
                 return false;
         }
@@ -252,7 +267,11 @@ final class BotCentral
         $perguntas = [
             'valor' => 'Qual o valor?', 'desc' => 'Qual a descrição? (ex.: <code>mercado</code>)',
             'nome' => 'De quem é o aniversário?', 'data' => 'Qual a data? (<code>15/03</code> ou <code>15/03/1990</code>)',
+            'dia' => 'Em que dia do mês vence? (ex.: <code>10</code>)',
         ];
+        if ($falta === 'desc' && $p['tipo'] === 'novofixo') {
+            $perguntas['desc'] = 'Qual o nome da conta fixa? (ex.: <code>internet</code>)';
+        }
         if (isset($perguntas[$falta])) {
             $this->conv['aguardando'] = $falta;
             $this->enviar($perguntas[$falta], [[['Cancelar', 'cancelar']]], $editar);
@@ -299,6 +318,13 @@ final class BotCentral
                 $mes = MESES[(int)substr($p['mes'], 5, 2) - 1];
                 return '<b>' . ($fx['tipo'] === 'receita' ? 'Receber' : 'Pagar') . ' conta fixa</b>  ' . moeda((float)$p['valor']) . "\n"
                     . $this->h($fx['desc']) . " · $mes" . ($fx['pago'] ? "\n<i>(já estava marcada como " . ($fx['tipo'] === 'receita' ? 'recebida' : 'paga') . '; vou só atualizar o valor)</i>' : '');
+            case 'novofixo':
+                $conta = $this->nomeConta($p['conta'] ?? '');
+                $repetido = current(array_filter(fin_estado()['fixos'], fn($fx) => empty($fx['ate']) && sem_acentos(trim($fx['desc'])) === sem_acentos(trim($p['desc']))));
+                return '<b>Nova ' . ($p['fixotipo'] === 'receita' ? 'entrada' : 'conta') . ' fixa</b>  ' . moeda((float)$p['valor']) . "\n"
+                    . $this->h($p['desc']) . ' · todo dia ' . (int)$p['dia'] . "\n"
+                    . '<i>' . $this->h($p['cat']) . ($conta ? ' · ' . $this->h($conta) : '') . ' · a partir de ' . MESES[(int)date('n') - 1] . '</i>'
+                    . ($repetido ? "\n<i>(atenção: já existe a conta fixa \"" . $this->h($repetido['desc']) . '"; vou cadastrar outra)</i>' : '');
             case 'aniversario':
                 return "<b>Aniversário</b>\n" . $this->h($p['nome']) . ' · ' . sprintf('%02d/%02d', $p['dia'], $p['mes']) . ($p['ano'] ? '/' . $p['ano'] : '');
         }
@@ -313,7 +339,7 @@ final class BotCentral
         if (str_starts_with($d, 'menu:')) {
             $this->tirarBotoes($msg);
             match ($arg) {
-                'gasto', 'entrada', 'aniversario', 'fixo' => $this->pedirFrase($arg),
+                'gasto', 'entrada', 'aniversario', 'fixo', 'novofixo' => $this->pedirFrase($arg),
                 'resumo' => $this->resumo(),
                 'aniversarios' => $this->proximosAniversarios(),
                 'desfazer' => $this->desfazer(),
@@ -357,6 +383,14 @@ final class BotCentral
                     $this->novaFrase($texto, $arg);
                 }
                 return;
+            case 'ftipo':
+                if ($p['tipo'] === 'novofixo' && in_array($arg, ['despesa', 'receita'], true)) {
+                    $p['fixotipo'] = $arg;
+                    $p['cat'] = bot_categoria($p['desc'], $arg, fin_estado()['categorias'] ?: FIN_CATEGORIAS);
+                    $p['faltando'] = $p['cat'] ? [] : ['cat'];
+                }
+                $this->avancar($msg);
+                return;
             case 'cat':
                 $cats = fin_estado()['categorias'] ?: FIN_CATEGORIAS;
                 $p['cat'] = $cats[(int)$arg] ?? 'Outros';
@@ -383,7 +417,7 @@ final class BotCentral
                     $this->listarFixos($msg);
                 } else {
                     $this->conv['aguardando'] = $arg;
-                    $perg = ['valor' => 'Qual o valor certo?', 'desc' => 'Qual a descrição certa?', 'data' => 'Qual a data certa?', 'nome' => 'Qual o nome certo?'][$arg] ?? 'Mande o valor certo:';
+                    $perg = ['valor' => 'Qual o valor certo?', 'desc' => 'Qual a descrição certa?', 'data' => 'Qual a data certa?', 'nome' => 'Qual o nome certo?', 'dia' => 'Qual o dia certo do vencimento?'][$arg] ?? 'Mande o valor certo:';
                     $this->enviar($perg, [[['Voltar', 'voltar']]], $msg);
                 }
                 return;
@@ -406,6 +440,10 @@ final class BotCentral
                 [['Categoria', 'campo:cat'], ['Conta', 'campo:conta'], [$p['tipo'] === 'gasto' ? 'É entrada' : 'É gasto', 'tipo:' . ($p['tipo'] === 'gasto' ? 'entrada' : 'gasto')]],
             ],
             'fixo' => [[['Valor', 'campo:valor'], ['Outra conta fixa', 'campo:outrofixo']]],
+            'novofixo' => [
+                [['Valor', 'campo:valor'], ['Descrição', 'campo:desc'], ['Dia', 'campo:dia']],
+                [['Categoria', 'campo:cat'], ['Conta', 'campo:conta'], $p['fixotipo'] === 'receita' ? ['É gasto', 'ftipo:despesa'] : ['É entrada', 'ftipo:receita']],
+            ],
             'aniversario' => [[['Nome', 'campo:nome'], ['Data', 'campo:data']]],
             default => [],
         };
@@ -429,6 +467,10 @@ final class BotCentral
                     $ant = fin_pagar_fixo($p['fixo']['id'], $p['mes'], (float)$p['valor']);
                     $this->conv['ultima'] = ['acao' => 'fixo', 'id' => $p['fixo']['id'], 'mes' => $p['mes'], 'anterior' => $ant, 'texto' => $p['fixo']['desc']];
                     break;
+                case 'novofixo':
+                    $id = fin_criar_fixo(['tipo' => $p['fixotipo'], 'desc' => $p['desc'], 'valor' => $p['valor'], 'dia' => $p['dia'], 'cat' => $p['cat'], 'conta' => $p['conta'] ?? '']);
+                    $this->conv['ultima'] = ['acao' => 'novofixo', 'id' => $id, 'texto' => 'conta fixa ' . $p['desc']];
+                    break;
                 case 'aniversario':
                     $id = aniv_adicionar($p['nome'], (int)$p['dia'], (int)$p['mes'], $p['ano'] ? (int)$p['ano'] : null);
                     $this->conv['ultima'] = ['acao' => 'aniv', 'id' => $id, 'texto' => 'aniversário de ' . $p['nome']];
@@ -443,7 +485,7 @@ final class BotCentral
         $this->conv['pendente'] = null;
         $this->conv['aguardando'] = null;
         $extra = '';
-        if (in_array($p['tipo'], ['gasto', 'entrada', 'fixo'], true)) {
+        if (in_array($p['tipo'], ['gasto', 'entrada', 'fixo', 'novofixo'], true)) {
             $res = fin_resumo(date('Y-m'));
             $extra = "\n\n<i>Mês: entradas " . moeda($res['rec']) . ' · gastos ' . moeda($res['desp']) . '</i>';
         }
@@ -461,6 +503,7 @@ final class BotCentral
             'lanc' => fin_remover_lancamento($u['mes'], $u['id']),
             'fixo' => fin_restaurar_fixo($u['id'], $u['mes'], $u['anterior']),
             'aniv' => aniv_remover($u['id']),
+            'novofixo' => fin_remover_fixo($u['id']),
         };
         $this->conv['ultima'] = null;
         $this->enviar('Desfeito: ' . $this->h($u['texto']) . '.');
@@ -607,6 +650,7 @@ function tg_comandos(): array
         ['command' => 'menu', 'description' => 'Opções em botões'],
         ['command' => 'resumo', 'description' => 'Resumo do mês'],
         ['command' => 'fixos', 'description' => 'Pagar uma conta fixa'],
+        ['command' => 'novofixo', 'description' => 'Cadastrar uma conta fixa'],
         ['command' => 'aniversarios', 'description' => 'Próximos aniversários'],
         ['command' => 'desfazer', 'description' => 'Desfazer o último registro'],
         ['command' => 'cancelar', 'description' => 'Cancelar o que está em andamento'],
