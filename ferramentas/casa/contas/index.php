@@ -1,7 +1,7 @@
 <?php
 /**
  * Contas do mês. Estado em dados/estado.json:
- *   contas: [{id, nome, valor (padrão), dia (vencimento), ativa}]
+ *   contas: [{id, nome, valor (padrão), dia (vencimento), ativa, avisar (dias antes do lembrete no Telegram; sem = 1, 0 = no dia, -1 = não)}]
  *   meses:  {"2026-11": {"<id>": {v: valor do mês, pago: bool, data: "2026-11-05"}, "_extras": [{id, nome, v, pago}]}}
  */
 /** @var Ferramenta $f */
@@ -44,6 +44,7 @@ inicio_ferramenta($f);
     <label>Nome <input name="nome" required placeholder="Ex.: Energia (EDP)"></label>
     <label>Valor de costume <input name="valor" inputmode="decimal" placeholder="0,00"></label>
     <label>Dia do vencimento <input name="dia" type="number" min="1" max="31" value="10"></label>
+    <label title="O bot do Telegram avisa com esta antecedência se a conta ainda não estiver paga">Lembrete no Telegram <select name="avisar"></select></label>
     <button class="btn btn-primario">Salvar</button>
   </form>
   <table class="dados" style="margin-top:8px"><tbody id="fixas"></tbody></table>
@@ -114,6 +115,7 @@ inicio_ferramenta($f);
       <td><input data-f="nome" value="${esc(c.nome)}"></td>
       <td style="width:130px"><input data-f="valor" value="${fmt(c.valor)}" inputmode="decimal" style="text-align:right"></td>
       <td style="width:110px"><input data-f="dia" type="number" min="1" max="31" value="${c.dia}" title="Dia do vencimento"></td>
+      <td style="width:170px"><select data-f="avisar" title="Lembrete no Telegram">${App.opcoesAviso(c.avisar)}</select></td>
       <td class="num"><label class="check"><input type="checkbox" data-f="ativa" ${c.ativa !== false ? 'checked' : ''}> ativa</label></td></tr>`).join('');
 
     // histórico
@@ -156,12 +158,16 @@ inicio_ferramenta($f);
     if (k === 'valor') c.valor = App.numero(e.target.value) ?? 0;
     if (k === 'dia') c.dia = Math.max(1, Math.min(31, +e.target.value || 1));
     if (k === 'ativa') c.ativa = e.target.checked;
+    if (k === 'avisar') App.gravarAviso(c, e.target.value);
     desenhar(); salvar();
   });
+  $('#nova').avisar.innerHTML = App.opcoesAviso();
   $('#nova').addEventListener('submit', (e) => {
     e.preventDefault();
     const fm = e.target;
-    est.contas.push({ id: id(), nome: fm.nome.value.trim(), valor: App.numero(fm.valor.value) ?? 0, dia: +fm.dia.value || 1, ativa: true });
+    const nova = { id: id(), nome: fm.nome.value.trim(), valor: App.numero(fm.valor.value) ?? 0, dia: +fm.dia.value || 1, ativa: true };
+    App.gravarAviso(nova, fm.avisar.value);
+    est.contas.push(nova);
     fm.reset(); fm.dia.value = 10;
     desenhar(); salvar();
   });

@@ -4,7 +4,8 @@
  *
  * Informações gerais (valem para todos os meses):
  *   contas:     [{id, nome, tipo: corrente|poupanca|carteira|investimento|cartao, ativa}]
- *   fixos:      [{id, desc, valor, dia, tipo: despesa|receita, cat, conta, desde: "AAAA-MM", ate: "AAAA-MM"|null}]
+ *   fixos:      [{id, desc, valor, dia, tipo: despesa|receita, cat, conta, desde: "AAAA-MM", ate: "AAAA-MM"|null, avisar}]
+ *               avisar: dias antes do lembrete no Telegram (só gastos; sem = 1, 0 = no dia, -1 = não avisar)
  *   categorias: [nomes]
  *
  * Informações de cada mês (meses["AAAA-MM"]):
@@ -111,6 +112,7 @@ inicio_ferramenta($f);
       <label style="flex:0 1 80px">Dia <input name="dia" type="number" min="1" max="31" value="10"></label>
       <label>Categoria <select name="cat"></select></label>
       <label>Conta <select name="conta"></select></label>
+      <label title="Para gastos: o bot do Telegram avisa com esta antecedência se ainda não estiver pago">Lembrete <select name="avisar"></select></label>
       <button class="btn">+ Fixo</button>
     </form>
   </section>
@@ -379,12 +381,13 @@ inicio_ferramenta($f);
     const cats = est.categorias.map((c) => `<option ${''}>${esc(c)}</option>`).join('');
     const contas = '<option value="">—</option>' + est.contas.map((c) => `<option value="${c.id}">${esc(c.nome)}</option>`).join('');
     const ordem = est.fixos.slice().sort((a, b) => (a.tipo === b.tipo ? (a.dia || 0) - (b.dia || 0) : a.tipo === 'receita' ? -1 : 1));
-    $('#lista-fixos').innerHTML = ordem.length ? '<thead><tr><th>descrição</th><th class="num">valor</th><th class="num">dia</th><th>categoria</th><th>conta</th><th>período</th><th></th></tr></thead><tbody>' + ordem.map((fx) => `<tr data-id="${fx.id}" class="${fx.ate && fx.ate < kHoje ? 'mudo' : ''}">
+    $('#lista-fixos').innerHTML = ordem.length ? '<thead><tr><th>descrição</th><th class="num">valor</th><th class="num">dia</th><th>categoria</th><th>conta</th><th>lembrete</th><th>período</th><th></th></tr></thead><tbody>' + ordem.map((fx) => `<tr data-id="${fx.id}" class="${fx.ate && fx.ate < kHoje ? 'mudo' : ''}">
       <td><input data-k="desc" value="${esc(fx.desc)}"><span class="pequeno ${fx.tipo === 'receita' ? 'estado-ok' : 'mudo'}">${fx.tipo === 'receita' ? 'entrada' : 'gasto'}</span></td>
       <td class="num" style="width:110px"><input data-k="valor" value="${f2(fx.valor)}" inputmode="decimal" style="text-align:right"></td>
       <td class="num" style="width:70px"><input data-k="dia" type="number" min="1" max="31" value="${fx.dia}"></td>
       <td style="width:150px"><select data-k="cat">${cats.replace(`<option >${esc(fx.cat)}</option>`, `<option selected>${esc(fx.cat)}</option>`)}</select></td>
       <td style="width:130px"><select data-k="conta">${contas.replace(`value="${fx.conta}"`, `value="${fx.conta}" selected`)}</select></td>
+      <td style="width:160px">${fx.tipo === 'receita' ? '<span class="mudo pequeno">—</span>' : `<select data-k="avisar" title="Lembrete no Telegram">${App.opcoesAviso(fx.avisar)}</select>`}</td>
       <td class="pequeno mudo" style="white-space:nowrap">desde ${fx.desde ? fx.desde.split('-').reverse().join('/') : 'sempre'}${fx.ate ? `<br>até ${fx.ate.split('-').reverse().join('/')}` : ''}</td>
       <td class="num" style="white-space:nowrap">${fx.ate ? '<button class="btn btn-p" data-k="reativar">reativar</button>' : '<button class="btn btn-p" data-k="encerrar" title="Para de aparecer a partir do próximo mês; o histórico fica">encerrar</button>'}
         <button class="btn btn-p btn-leve" data-k="rm" title="Excluir de todos os meses">×</button></td></tr>`).join('') + '</tbody>' : '<tr><td class="mudo">Nenhum fixo ainda.</td></tr>';
@@ -405,6 +408,7 @@ inicio_ferramenta($f);
     const fx = est.fixos.find((x) => x.id === e.target.closest('tr').dataset.id), k = e.target.dataset.k;
     if (k === 'valor') fx.valor = App.numero(e.target.value) ?? 0;
     else if (k === 'dia') fx.dia = Math.max(1, Math.min(31, +e.target.value || 1));
+    else if (k === 'avisar') App.gravarAviso(fx, e.target.value);
     else fx[k] = e.target.value;
     tudo(); salvar();
   });
@@ -420,10 +424,13 @@ inicio_ferramenta($f);
     } else return;
     tudo(); salvar();
   });
+  $('#novo-fixo').avisar.innerHTML = App.opcoesAviso();
   $('#novo-fixo').addEventListener('submit', (e) => {
     e.preventDefault();
     const fm = e.target;
-    est.fixos.push({ id: id(), desc: fm.desc.value.trim(), valor: App.numero(fm.valor.value) ?? 0, dia: +fm.dia.value || 1, tipo: fm.tipo.value, cat: fm.cat.value, conta: fm.conta.value, desde: kAtual() < kHoje ? kAtual() : kHoje, ate: null });
+    const novo = { id: id(), desc: fm.desc.value.trim(), valor: App.numero(fm.valor.value) ?? 0, dia: +fm.dia.value || 1, tipo: fm.tipo.value, cat: fm.cat.value, conta: fm.conta.value, desde: kAtual() < kHoje ? kAtual() : kHoje, ate: null };
+    if (novo.tipo === 'despesa') App.gravarAviso(novo, fm.avisar.value);
+    est.fixos.push(novo);
     fm.desc.value = ''; fm.valor.value = '';
     tudo(); salvar();
   });

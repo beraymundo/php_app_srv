@@ -20,6 +20,9 @@ return [
     // Arquivos excluídos vão para <ferramenta>/lixeira/ e somem depois de N dias
     'lixeira_dias' => 60,
 
+    // Lembretes do bot do Telegram (aniversários e contas chegando) são mandados a partir desta hora
+    'avisos_hora' => 8,
+
     // Caminho do LibreOffice (para converter em PDF). Deixe '' para detectar automaticamente.
     'soffice' => '',
 ];

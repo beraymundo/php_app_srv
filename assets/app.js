@@ -301,6 +301,20 @@ Object.assign(window.App, {
     window.addEventListener('focus', conferir);
     return () => { pendente = true; st('* salvando...'); clearTimeout(t); t = setTimeout(gravar, espera); };
   },
+  /**
+   * Lembrete pelo Telegram (campo "avisar" de aniversários e contas): dias de antecedência.
+   * Sem o campo = padrão (1 dia antes); 0 = no dia; -1 = não avisar.
+   */
+  opcoesAviso(v) {
+    const lista = [['', 'padrão (1 dia antes)'], [0, 'no dia'], [1, '1 dia antes'], [2, '2 dias antes'], [3, '3 dias antes'], [5, '5 dias antes'], [7, '1 semana antes'], [15, '15 dias antes'], [30, '30 dias antes'], [-1, 'não avisar']];
+    const atual = v === undefined || v === null || v === '' ? '' : Number(v);
+    if (atual !== '' && !lista.some((o) => o[0] === atual)) lista.splice(-1, 0, [atual, `${atual} dias antes`]);
+    return lista.map(([val, txt]) => `<option value="${val}"${val === atual ? ' selected' : ''}>${txt}</option>`).join('');
+  },
+  /** Grava o valor de um <select> de lembrete em obj.avisar (vazio apaga o campo e volta ao padrão). */
+  gravarAviso(obj, valor) {
+    if (valor === '' || valor === undefined) delete obj.avisar; else obj.avisar = Number(valor);
+  },
   /** Formata número como moeda brasileira. */
   reais(n) { return (Number(n) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); },
   baixarTexto(nome, texto) {

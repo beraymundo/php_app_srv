@@ -17,6 +17,7 @@ require __DIR__ . '/../lib/acoes.php';
 require __DIR__ . '/../lib/bot/interpretar.php';
 require __DIR__ . '/../lib/bot/telegram.php';
 require __DIR__ . '/../lib/bot/bot.php';
+require __DIR__ . '/../lib/bot/avisos.php';
 
 set_time_limit(0);
 if (!is_dir(DIR_USUARIOS)) {
@@ -35,6 +36,7 @@ $tokenAtual = '';
 $api = null;
 $bot = null;
 $falhas = 0;
+$ultimoAviso = 0;
 while (true) {
     file_put_contents($vivo, (string)time());
     if (is_file($parar)) {
@@ -70,6 +72,15 @@ while (true) {
         }
         sleep(min(60, 5 * $falhas));
         continue;
+    }
+    // lembretes de aniversários e contas (confere a cada 10 minutos, a partir da hora configurada)
+    if (time() - $ultimoAviso >= 600 && (int)date('G') >= (int)(config('avisos_hora') ?? 8)) {
+        $ultimoAviso = time();
+        try {
+            avisos_enviar($api);
+        } catch (Throwable $e) {
+            tg_log('avisos: ' . $e->getMessage() . ' em ' . basename($e->getFile()) . ':' . $e->getLine());
+        }
     }
     foreach ($updates as $u) {
         // grava o offset antes de processar: uma mensagem que derruba o bot não fica repetindo para sempre

@@ -27,7 +27,10 @@ bot sempre pede confirmação.
 
 O programa (`bin/telegram_bot.php`) busca as mensagens por long polling: não precisa de endereço público.
 Configuração e vínculos em `usuarios/telegram.json`; registro em `usuarios/telegram.log`.
-Testes: `php testes/interpretar_teste.php` e `php testes/bot_teste.php`.
+Lembretes: a partir de `avisos_hora` (config.php), o bot avisa aniversários, gastos fixos (Minhas Finanças) e contas da
+casa que estão chegando. Cada item tem o campo "Lembrete no Telegram" (padrão: 1 dia antes; "não avisar" desliga).
+Contas já pagas não são avisadas e cada aviso sai uma vez só (`usuarios/<login>/telegram_avisos.json`).
+Testes: `php testes/interpretar_teste.php`, `php testes/bot_teste.php` e `php testes/avisos_teste.php`.
 
 Os dados das ferramentas têm versão (`_v`): se o bot gravar enquanto a página está aberta, a página recarrega em vez
 de sobrescrever. Ações feitas pelo servidor ficam em `lib/acoes.php`.

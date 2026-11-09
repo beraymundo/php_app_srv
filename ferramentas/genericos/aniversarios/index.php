@@ -1,7 +1,7 @@
 <?php
 /**
  * Aniversários. Estado em dados/estado.json:
- *   pessoas: [{id, nome, dia, mes, ano (opcional), grupo, tel}]
+ *   pessoas: [{id, nome, dia, mes, ano (opcional), grupo, tel, avisar (dias antes do lembrete no Telegram; sem = 1, -1 = não)}]
  */
 /** @var Ferramenta $f */
 /** @var string $a */
@@ -57,7 +57,8 @@ inicio_ferramenta($f);
       <label class="largo">Nome <input name="nome" required></label>
       <label>Data (dia/mês ou dia/mês/ano) <input name="data" required placeholder="15/03 ou 15/03/1980"></label>
       <label>Grupo <input name="grupo" list="grupos" placeholder="família, amigos, trabalho..."></label>
-      <label class="largo">Telefone (opcional, para o WhatsApp) <input name="tel" inputmode="tel" placeholder="(27) 99999-9999"></label>
+      <label>Telefone (opcional, para o WhatsApp) <input name="tel" inputmode="tel" placeholder="(27) 99999-9999"></label>
+      <label title="O bot do Telegram manda uma mensagem com esta antecedência">Lembrete no Telegram <select name="avisar"></select></label>
       <div class="largo grupo"><button class="btn btn-primario">+ Cadastrar</button><button type="button" class="btn" data-abrir="#importar">Colar uma lista</button></div>
     </form>
     <datalist id="grupos"></datalist>
@@ -174,6 +175,7 @@ inicio_ferramenta($f);
   const idadeEm = (p, data) => (p.ano ? data.getFullYear() - p.ano : null);
   const quando = (dd) => (dd === 0 ? 'hoje' : dd === 1 ? 'amanhã' : `em ${dd} dias`);
 
+  $('#nova').avisar.innerHTML = App.opcoesAviso();
   $('#mes').innerHTML = MESES.map((m, i) => `<option value="${i + 1}">${m}</option>`).join('');
   $('#mes').value = hoje.getMonth() + 1;
 
@@ -210,11 +212,12 @@ inicio_ferramenta($f);
     const q = $('#busca').value.trim().toLowerCase();
     const todos = est.pessoas.filter((p) => !q || (p.nome + ' ' + (p.grupo || '')).toLowerCase().includes(q)).sort((a, b) => a.mes - b.mes || a.dia - b.dia);
     $('#total').textContent = `(${est.pessoas.length})`;
-    $('#todos').innerHTML = '<thead><tr><th>nome</th><th>data</th><th>grupo</th><th>telefone</th><th></th></tr></thead><tbody>' + todos.map((p) => `<tr data-id="${p.id}">
+    $('#todos').innerHTML = '<thead><tr><th>nome</th><th>data</th><th>grupo</th><th>telefone</th><th>lembrete</th><th></th></tr></thead><tbody>' + todos.map((p) => `<tr data-id="${p.id}">
       <td><input data-k="nome" value="${esc(p.nome)}"></td>
       <td style="width:130px"><input data-k="data" value="${p2(p.dia)}/${p2(p.mes)}${p.ano ? '/' + p.ano : ''}"></td>
       <td style="width:160px"><input data-k="grupo" value="${esc(p.grupo)}" list="grupos"></td>
       <td style="width:160px"><input data-k="tel" value="${esc(p.tel)}"></td>
+      <td style="width:170px"><select data-k="avisar" title="Lembrete no Telegram">${App.opcoesAviso(p.avisar)}</select></td>
       <td class="num"><button class="btn btn-p btn-leve" data-rm title="Remover">×</button></td></tr>`).join('') + '</tbody>';
   }
   document.addEventListener('click', (e) => { const pid = e.target.dataset && e.target.dataset.msg; if (pid) mensagemPara(pid); });
@@ -222,8 +225,10 @@ inicio_ferramenta($f);
     e.preventDefault();
     const fm = e.target, d = lerData(fm.data.value);
     if (!d) return alert('Data inválida. Use dd/mm ou dd/mm/aaaa.');
-    est.pessoas.push({ id: id(), nome: fm.nome.value.trim(), ...d, grupo: fm.grupo.value.trim(), tel: fm.tel.value.trim() });
-    const g = fm.grupo.value; fm.reset(); fm.grupo.value = g; fm.nome.focus();
+    const nova = { id: id(), nome: fm.nome.value.trim(), ...d, grupo: fm.grupo.value.trim(), tel: fm.tel.value.trim() };
+    App.gravarAviso(nova, fm.avisar.value);
+    est.pessoas.push(nova);
+    const g = fm.grupo.value, av = fm.avisar.value; fm.reset(); fm.grupo.value = g; fm.avisar.value = av; fm.nome.focus();
     desenhar(); salvar();
   });
   $('#importar').addEventListener('submit', (e) => {
@@ -245,6 +250,7 @@ inicio_ferramenta($f);
   $('#todos').addEventListener('change', (e) => {
     const p = est.pessoas.find((x) => x.id === e.target.closest('tr').dataset.id), k = e.target.dataset.k;
     if (k === 'data') { const d = lerData(e.target.value); if (d) Object.assign(p, d); else return alert('Data inválida.'); }
+    else if (k === 'avisar') App.gravarAviso(p, e.target.value);
     else p[k] = e.target.value.trim();
     desenhar(); salvar();
   });
